@@ -1,14 +1,19 @@
 "use client";
 
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, forwardRef } from "react";
 import dynamic from "next/dynamic";
 import type { WebcamProps } from "react-webcam";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const Webcam = dynamic(
-  () => import("react-webcam").then((mod) => mod.default as any),
-  { ssr: false }
-) as unknown as React.FC<WebcamProps>;
+// Dynamically import webcam
+const RawWebcam = dynamic(() => import("react-webcam"), { ssr: false });
+
+// Wrap with forwardRef to bypass typing issues
+const Webcam = forwardRef<any, WebcamProps>((props, ref) => (
+  <RawWebcam {...props} ref={ref} />
+));
+
+Webcam.displayName = "Webcam"; // needed when using forwardRef
 
 export default function WebcamCapture() {
   const router = useRouter();
@@ -17,8 +22,7 @@ export default function WebcamCapture() {
   const [capturing, setCapturing] = useState(false);
 
   const capture = useCallback(() => {
-    if (!webcamRef.current) return null;
-    return webcamRef.current.getScreenshot();
+    return webcamRef.current?.getScreenshot();
   }, []);
 
   const handleCapture = async () => {
@@ -50,7 +54,6 @@ export default function WebcamCapture() {
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {/* @ts-ignore */}
       <Webcam
         audio={false}
         ref={webcamRef}
