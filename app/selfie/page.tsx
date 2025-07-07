@@ -12,11 +12,19 @@ export default function SelfiePageWrapper() {
   );
 }
 
+// Load webcam with type override
+const Webcam = dynamic(() => import('react-webcam'), {
+  ssr: false,
+}) as unknown as React.FC<React.ComponentProps<'video'> & {
+  audio: boolean;
+  screenshotFormat: string;
+  videoConstraints: any;
+  ref: React.Ref<any>;
+}>;
+
 function SelfiePage() {
-  const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
   const webcamRef = useRef<any>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
-
   const searchParams = useSearchParams();
   const router = useRouter();
 
