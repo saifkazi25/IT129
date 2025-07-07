@@ -3,20 +3,21 @@
 import dynamic from 'next/dynamic';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { WebcamProps } from 'react-webcam';
 
-// 👇 Dynamically import react-webcam with type workaround
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+// 👇 Workaround: force dynamic import as a component that supports `ref`
+const Webcam = dynamic(() => import('react-webcam') as any, {
+  ssr: false,
+}) as React.FC<WebcamProps & { ref?: React.Ref<any> }>;
 
 export default function Home() {
-  const router = useRouter();
   const webcamRef = useRef<any>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const router = useRouter();
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setImgSrc(imageSrc);
-    }
+    if (imageSrc) setImgSrc(imageSrc);
   };
 
   const handleContinue = () => {
