@@ -38,3 +38,46 @@ function SelfiePage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
+      <h1 className="text-2xl font-bold mb-6">📸 Take a Selfie</h1>
+
+      {!screenshot ? (
+        <>
+          <Webcam
+            ref={webcamRef}
+            audio={false}
+            screenshotFormat="image/jpeg"
+            className="rounded-xl border mb-4"
+            videoConstraints={{ facingMode: 'user' }}
+          />
+          <button
+            onClick={() => {
+              const shot = webcamRef.current?.getScreenshot();
+              if (shot) setScreenshot(shot);
+            }}
+            className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition"
+          >
+            Capture Selfie
+          </button>
+        </>
+      ) : (
+        <>
+          <img src={screenshot} alt="Your selfie" className="rounded-xl mb-4" />
+          <div className="flex gap-4">
+            <button
+              onClick={() => setScreenshot(null)}
+              className="flex-1 bg-gray-600 text-white py-2 rounded-xl hover:bg-gray-700 transition"
+            >
+              Retake
+            </button>
+            <button
+              onClick={handleCapture}
+              className="flex-1 bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700 transition"
+            >
+              Use This
+            </button>
+          </div>
+        </>
+      )}
+    </main>
+  );
+}
