@@ -3,7 +3,7 @@
 import React, { forwardRef, type Ref } from 'react';
 import Webcam from 'react-webcam';
 
-// 👇 Use `typeof Webcam` to get the props type
+// ✅ Safe type inference for props
 type Props = React.ComponentProps<typeof Webcam>;
 
 const CustomWebcam = forwardRef((props: Props, ref: Ref<Webcam>) => (
