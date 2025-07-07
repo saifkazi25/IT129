@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // ✅ FIXED
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -16,7 +16,6 @@ export default function SelfiePage() {
       if (imageSrc) {
         setScreenshot(imageSrc);
 
-        // Pass answers and selfie image to the result page
         const query: Record<string, string> = {};
         for (let i = 0; i < 7; i++) {
           const value = searchParams.get(`q${i}`);
@@ -52,8 +51,3 @@ export default function SelfiePage() {
           </button>
         </>
       ) : (
-        <img src={screenshot} alt="Captured selfie" className="rounded-xl" />
-      )}
-    </main>
-  );
-}
