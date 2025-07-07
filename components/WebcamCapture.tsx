@@ -1,21 +1,15 @@
-'use client';
+"use client";
+import React, { useRef, useState } from "react";
+import Webcam from "react-webcam";
 
-import dynamic from 'next/dynamic';
-import { useRef } from 'react';
-
-type Props = {
-  onCapture: (image: string) => void;
-};
-
-// Dynamically import the Webcam component with `any` to suppress type errors
-const Webcam = dynamic<any>(() => import("react-webcam"), { ssr: false });
-
-export default function WebcamCapture({ onCapture }: Props) {
-  const webcamRef = useRef<any>(null);
+export default function WebcamCapture({ onCapture }: { onCapture: (img: string) => void }) {
+  const webcamRef = useRef<Webcam>(null);
+  const [captured, setCaptured] = useState<string | null>(null);
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
+      setCaptured(imageSrc);
       onCapture(imageSrc);
     }
   };
@@ -23,19 +17,23 @@ export default function WebcamCapture({ onCapture }: Props) {
   return (
     <div className="flex flex-col items-center space-y-4">
       <Webcam
-        audio={false}
         ref={webcamRef}
+        audio={false}
         screenshotFormat="image/jpeg"
         className="rounded border"
-        videoConstraints={{ facingMode: 'user' }}
+        videoConstraints={{ facingMode: "user" }}
       />
       <button
         onClick={capture}
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
       >
-        Capture Selfie 📸
+        Capture Selfie
       </button>
+      {captured && (
+        <img src={captured} alt="Captured" className="rounded border mt-4 max-w-xs" />
+      )}
     </div>
   );
 }
+
 
