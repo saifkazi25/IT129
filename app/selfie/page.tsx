@@ -1,18 +1,14 @@
 'use client';
 
-import { useRef, useState, Suspense } from 'react';
+import React, { useRef, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useSearchParams, useRouter } from 'next/navigation';
-import type { MutableRefObject } from 'react';
 
-// Dynamic import for react-webcam
-const Webcam = dynamic(() => import('react-webcam') as any, {
-  ssr: false,
-}) as React.FC<any>;
+// Dynamically import react-webcam without SSR
+const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
-function SelfiePageContent() {
-  const webcamRef: MutableRefObject<any> = useRef(null);
-  const router = useRouter();
+export default function SelfiePage() {
+  const webcamRef = useRef<any>(null);
   const searchParams = useSearchParams();
   const [image, setImage] = useState<string | null>(null);
 
@@ -21,47 +17,40 @@ function SelfiePageContent() {
       const screenshot = webcamRef.current.getScreenshot();
       if (screenshot) {
         setImage(screenshot);
-        const queryString = Array.from(searchParams.entries())
-          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-          .join('&');
-        router.push(`/result?image=${encodeURIComponent(screenshot)}&${queryString}`);
+        // You could also POST this to your backend here
       }
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">📸 Take Your Fantasy Selfie</h1>
+    <main className="min-h-screen bg-white text-black p-4">
+      <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
 
-      <Webcam
-        ref={webcamRef}
-        audio={false}
-        screenshotFormat="image/jpeg"
-        className="rounded-xl border mb-4"
-        videoConstraints={{ facingMode: 'user' }}
-      />
+      <Suspense fallback={<p>Loading camera...</p>}>
+        <Webcam
+          ref={webcamRef}
+          audio={false}
+          screenshotFormat="image/jpeg"
+          className="rounded-xl border mb-4"
+          videoConstraints={{
+            facingMode: 'user',
+          }}
+        />
+      </Suspense>
 
       <button
         onClick={capture}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
       >
-        Capture Selfie
+        Capture
       </button>
 
       {image && (
         <div className="mt-4">
-          <p className="text-lg font-semibold">Preview:</p>
-          <img src={image} alt="Selfie Preview" className="mt-2 rounded-lg border" />
+          <h2 className="font-semibold mb-2">Preview:</h2>
+          <img src={image} alt="Captured selfie" className="rounded-xl border" />
         </div>
       )}
     </main>
-  );
-}
-
-export default function SelfiePage() {
-  return (
-    <Suspense fallback={<div className="text-center p-10">Loading...</div>}>
-      <SelfiePageContent />
-    </Suspense>
   );
 }
