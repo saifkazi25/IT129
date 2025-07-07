@@ -1,25 +1,22 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useRef } from 'react';
 
-// Use dynamic import and cast to 'any' to silence TS issues
-const Webcam = dynamic(() => import("react-webcam") as any, { ssr: false });
+type Props = {
+  onCapture: (image: string) => void;
+};
 
-export default function WebcamCapture({ onCapture }: { onCapture: (image: string) => void }) {
+// Dynamically import the Webcam component with `any` to suppress type errors
+const Webcam = dynamic<any>(() => import("react-webcam"), { ssr: false });
+
+export default function WebcamCapture({ onCapture }: Props) {
   const webcamRef = useRef<any>(null);
-  const [error, setError] = useState("");
 
   const capture = () => {
-    try {
-      const imageSrc = webcamRef.current?.getScreenshot();
-      if (imageSrc) {
-        onCapture(imageSrc);
-      } else {
-        setError("Unable to capture image.");
-      }
-    } catch (err) {
-      setError("Webcam error.");
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      onCapture(imageSrc);
     }
   };
 
@@ -30,15 +27,15 @@ export default function WebcamCapture({ onCapture }: { onCapture: (image: string
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         className="rounded border"
-        videoConstraints={{ facingMode: "user" }}
+        videoConstraints={{ facingMode: 'user' }}
       />
       <button
         onClick={capture}
-        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
       >
-        Capture Selfie
+        Capture Selfie 📸
       </button>
-      {error && <p className="text-red-600">{error}</p>}
     </div>
   );
 }
+
