@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<any>(null); // ✅ FIXED
+  const webcamRef = useRef<any>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -51,3 +51,8 @@ export default function SelfiePage() {
           </button>
         </>
       ) : (
+        <img src={screenshot} alt="Captured selfie" className="rounded-xl" />
+      )}
+    </main>
+  );
+}
