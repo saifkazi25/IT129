@@ -4,12 +4,13 @@ import { useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { MutableRefObject } from 'react';
+import type { WebcamProps } from 'react-webcam';
 
-// Dynamic import to avoid SSR issues
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+// 👇 Properly typed dynamic import
+const Webcam = dynamic<WebcamProps>(() => import('react-webcam'), { ssr: false });
 
 export default function SelfiePage() {
-  const webcamRef = useRef<any>(null); // Use <any> to avoid TS error for now
+  const webcamRef = useRef<any>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -22,32 +23,28 @@ export default function SelfiePage() {
   };
 
   const handleSubmit = async () => {
-    if (!imgSrc) return alert('Please take a photo first.');
+    if (!imgSrc) {
+      alert('Please capture a selfie first.');
+      return;
+    }
 
     const answers: Record<string, string> = {};
     for (const [key, value] of searchParams.entries()) {
       answers[key] = value;
     }
 
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answers, selfie: imgSrc }),
-      });
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, selfie: imgSrc }),
+    });
 
-      const data = await response.json();
-      router.push(`/result?url=${encodeURIComponent(data.imageUrl)}`);
-    } catch (error) {
-      console.error('Error generating image:', error);
-      alert('Something went wrong while generating your image.');
-    }
+    const data = await response.json();
+    router.push(`/result?url=${encodeURIComponent(data.imageUrl)}`);
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-6">
       <h1 className="text-3xl font-bold mb-6">Take a Selfie</h1>
 
       {!imgSrc ? (
@@ -68,7 +65,7 @@ export default function SelfiePage() {
         </>
       ) : (
         <>
-          <img src={imgSrc} alt="Captured" className="rounded-xl mb-4 border" />
+          <img src={imgSrc} alt="Captured" className="rounded-xl border mb-4" />
           <button
             onClick={handleSubmit}
             className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800"
