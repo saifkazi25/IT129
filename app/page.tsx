@@ -33,3 +33,30 @@ export default function Home() {
 
     router.push(`/selfie?${params.toString()}`);
   };
+
+  return (
+    <main className="min-h-screen p-6 bg-white text-black flex flex-col items-center justify-center">
+      <h1 className="text-3xl font-bold mb-6">🔮 Discover Your Fantasy Life</h1>
+      <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-6">
+        {questions.map((question, index) => (
+          <div key={index}>
+            <label className="block font-medium mb-2">{question}</label>
+            <input
+              type="text"
+              value={answers[index]}
+              onChange={(e) => handleChange(index, e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            />
+          </div>
+        ))}
+        <button
+          type="submit"
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Next: Take a Selfie 📸
+        </button>
+      </form>
+    </main>
+  );
+}
