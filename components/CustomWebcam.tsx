@@ -1,10 +1,12 @@
 'use client';
 
-import React, { forwardRef } from 'react';
-import type { Ref } from 'react';
-import Webcam, { type WebcamProps } from 'react-webcam';
+import React, { forwardRef, type Ref } from 'react';
+import Webcam from 'react-webcam';
 
-const CustomWebcam = forwardRef((props: WebcamProps, ref: Ref<Webcam>) => (
+// 👇 Use `typeof Webcam` to get the props type
+type Props = React.ComponentProps<typeof Webcam>;
+
+const CustomWebcam = forwardRef((props: Props, ref: Ref<Webcam>) => (
   <Webcam
     ref={ref}
     audio={false}
