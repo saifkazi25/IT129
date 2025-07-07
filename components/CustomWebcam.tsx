@@ -3,10 +3,10 @@
 import React, { forwardRef, type Ref } from 'react';
 import Webcam from 'react-webcam';
 
-// ✅ Safe type inference for props
 type Props = React.ComponentProps<typeof Webcam>;
 
-const CustomWebcam = forwardRef((props: Props, ref: Ref<Webcam>) => (
+// ✅ Use HTMLVideoElement for the ref type
+const CustomWebcam = forwardRef((props: Props, ref: Ref<HTMLVideoElement>) => (
   <Webcam
     ref={ref}
     audio={false}
