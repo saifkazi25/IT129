@@ -4,13 +4,13 @@ import React, { useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// Import react-webcam dynamically (avoid SSR issues)
-const Webcam = dynamic(() => import('react-webcam'), {
+// Dynamically import wrapped webcam
+const Webcam = dynamic(() => import('../../components/CustomWebcam'), {
   ssr: false,
 });
 
 export default function SelfiePage() {
-  const webcamRef = useRef<any>(null); // Use 'any' here to avoid type error
+  const webcamRef = useRef<any>(null);
   const [image, setImage] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
@@ -19,8 +19,7 @@ export default function SelfiePage() {
       const screenshot = webcamRef.current.getScreenshot();
       if (screenshot) {
         setImage(screenshot);
-        // Example: Send this + quiz params to backend API
-        // fetch('/api/generate', { method: 'POST', body: JSON.stringify({ image, quiz: ... }) })
+        // Here you can handle API logic
       }
     }
   };
@@ -30,13 +29,7 @@ export default function SelfiePage() {
       <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
 
       <Suspense fallback={<p>Loading camera...</p>}>
-        <Webcam
-          ref={webcamRef}
-          audio={false}
-          screenshotFormat="image/jpeg"
-          className="rounded-xl border mb-4"
-          videoConstraints={{ facingMode: 'user' }}
-        />
+        <Webcam ref={webcamRef} />
       </Suspense>
 
       <button
