@@ -1,47 +1,25 @@
-"use client";
+'use client';
 
-import React, { useRef, useState, useCallback } from "react";
-import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 
-// Dynamically import react-webcam (we override types in react-webcam.d.ts)
-const Webcam = dynamic(() => import("react-webcam"), { ssr: false });
+// Use dynamic import and cast to 'any' to silence TS issues
+const Webcam = dynamic(() => import("react-webcam") as any, { ssr: false });
 
-export default function WebcamCapture() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function WebcamCapture({ onCapture }: { onCapture: (image: string) => void }) {
   const webcamRef = useRef<any>(null);
-  const [capturing, setCapturing] = useState(false);
+  const [error, setError] = useState("");
 
-  const capture = useCallback(() => {
-    if (!webcamRef.current) return null;
-    return webcamRef.current.getScreenshot();
-  }, []);
-
-  const handleCapture = async () => {
-    const img = capture();
-    if (!img) return;
-    setCapturing(true);
-
-    const answers = Object.fromEntries(searchParams.entries());
-
+  const capture = () => {
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers, selfie: img }),
-      });
-
-      const data = await res.json();
-      if (data.imageUrl) {
-        router.push(`/result?image=${encodeURIComponent(data.imageUrl)}`);
+      const imageSrc = webcamRef.current?.getScreenshot();
+      if (imageSrc) {
+        onCapture(imageSrc);
       } else {
-        alert(data.error || "Generation failed");
-        setCapturing(false);
+        setError("Unable to capture image.");
       }
     } catch (err) {
-      alert("Error generating image");
-      setCapturing(false);
+      setError("Webcam error.");
     }
   };
 
@@ -55,12 +33,12 @@ export default function WebcamCapture() {
         videoConstraints={{ facingMode: "user" }}
       />
       <button
-        onClick={handleCapture}
-        disabled={capturing}
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        onClick={capture}
+        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
       >
-        {capturing ? "Generating..." : "Capture & Generate"}
+        Capture Selfie
       </button>
+      {error && <p className="text-red-600">{error}</p>}
     </div>
   );
 }
