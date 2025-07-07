@@ -1,66 +1,59 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-
-// 👇 Dynamic import of Webcam with forwardRef
-const Webcam = dynamic(
-  () => import('react-webcam').then((mod) => mod.default),
-  { ssr: false }
-) as React.ForwardRefExoticComponent<any>;
+import Webcam from 'react-webcam';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<any>(null);
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const webcamRef = useRef<Webcam>(null);
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const searchParams = useSearchParams();
   const router = useRouter();
 
-  const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setImgSrc(imageSrc);
-    }
-  };
+  const handleCapture = () => {
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (imageSrc) {
+        setScreenshot(imageSrc);
 
-  const handleContinue = () => {
-    if (imgSrc) {
-      const encoded = encodeURIComponent(imgSrc);
-      router.push(`/result?image=${encoded}`);
+        // Pass answers and selfie image to the result page
+        const query: Record<string, string> = {};
+        for (let i = 0; i < 7; i++) {
+          const value = searchParams.get(`q${i}`);
+          if (value) query[`q${i}`] = value;
+        }
+        query['selfie'] = encodeURIComponent(imageSrc);
+
+        const queryString = new URLSearchParams(query).toString();
+        router.push(`/result?${queryString}`);
+      }
     }
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">📷 Take Your Selfie</h1>
-      <div className="w-full max-w-sm">
-        {imgSrc ? (
-          <img src={imgSrc} alt="Captured" className="rounded-xl mb-4" />
-        ) : (
+      <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
+      {!screenshot ? (
+        <>
           <Webcam
             ref={webcamRef}
             audio={false}
             screenshotFormat="image/jpeg"
             className="rounded-xl border mb-4"
-            videoConstraints={{ facingMode: 'user' }}
+            videoConstraints={{
+              facingMode: 'user',
+            }}
           />
-        )}
-
-        {!imgSrc ? (
           <button
-            onClick={capture}
-            className="w-full bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800"
+            onClick={handleCapture}
+            className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
           >
-            Capture
+            Capture Selfie
           </button>
-        ) : (
-          <button
-            onClick={handleContinue}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
-          >
-            Continue
-          </button>
-        )}
-      </div>
+        </>
+      ) : (
+        <img src={screenshot} alt="Captured selfie" className="rounded-xl" />
+      )}
     </main>
   );
 }
