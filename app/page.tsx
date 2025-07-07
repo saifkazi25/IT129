@@ -1,52 +1,21 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import type { MutableRefObject } from 'react';
-import type { WebcamProps } from 'react-webcam';
+import { useRef, useState } from 'react';
 
-// 👇 Properly typed dynamic import
-const Webcam = dynamic<WebcamProps>(() => import('react-webcam'), { ssr: false });
+const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
 export default function SelfiePage() {
   const webcamRef = useRef<any>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-  const router = useRouter();
 
   const capture = () => {
-    if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot();
-      setImgSrc(imageSrc);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!imgSrc) {
-      alert('Please capture a selfie first.');
-      return;
-    }
-
-    const answers: Record<string, string> = {};
-    for (const [key, value] of searchParams.entries()) {
-      answers[key] = value;
-    }
-
-    const response = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers, selfie: imgSrc }),
-    });
-
-    const data = await response.json();
-    router.push(`/result?url=${encodeURIComponent(data.imageUrl)}`);
+    const imageSrc = webcamRef.current?.getScreenshot();
+    setImgSrc(imageSrc);
   };
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-6">
-      <h1 className="text-3xl font-bold mb-6">Take a Selfie</h1>
-
+    <div className="p-4">
       {!imgSrc ? (
         <>
           <Webcam
@@ -58,21 +27,13 @@ export default function SelfiePage() {
           />
           <button
             onClick={capture}
-            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800"
+            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
           >
-            📸 Capture
+            Capture
           </button>
         </>
       ) : (
-        <>
-          <img src={imgSrc} alt="Captured" className="rounded-xl border mb-4" />
-          <button
-            onClick={handleSubmit}
-            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800"
-          >
-            🚀 Generate My Fantasy
-          </button>
-        </>
+        <img src={imgSrc} alt="Your selfie" className="rounded-xl border" />
       )}
     </div>
   );
