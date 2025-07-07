@@ -1,16 +1,25 @@
-"use client";
-import React, { useRef, useState } from "react";
-import Webcam from "react-webcam";
+'use client';
 
-export default function WebcamCapture({ onCapture }: { onCapture: (img: string) => void }) {
-  const webcamRef = useRef<Webcam>(null);
+import dynamic from 'next/dynamic';
+import { useRef, useState } from 'react';
+
+// Dynamically import react-webcam and cast to “any” so TS stops complaining
+const Webcam = dynamic<any>(() => import('react-webcam'), { ssr: false });
+
+type Props = {
+  onCapture: (img: string) => void;
+};
+
+export default function WebcamCapture({ onCapture }: Props) {
+  // Use 'any' for the ref to avoid TS namespace issues
+  const webcamRef = useRef<any>(null);
   const [captured, setCaptured] = useState<string | null>(null);
 
   const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setCaptured(imageSrc);
-      onCapture(imageSrc);
+    const img = webcamRef.current?.getScreenshot();
+    if (img) {
+      setCaptured(img);
+      onCapture(img);          // forward to parent (or API) if needed
     }
   };
 
@@ -21,19 +30,23 @@ export default function WebcamCapture({ onCapture }: { onCapture: (img: string) 
         audio={false}
         screenshotFormat="image/jpeg"
         className="rounded border"
-        videoConstraints={{ facingMode: "user" }}
+        videoConstraints={{ facingMode: 'user' }}
       />
+
       <button
         onClick={capture}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
       >
-        Capture Selfie
+        Capture Selfie 📸
       </button>
+
       {captured && (
-        <img src={captured} alt="Captured" className="rounded border mt-4 max-w-xs" />
+        <img
+          src={captured}
+          alt="Captured selfie"
+          className="max-w-xs rounded border mt-4"
+        />
       )}
     </div>
   );
 }
-
-
