@@ -4,15 +4,13 @@ import React, { useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// Dynamically import Webcam and cast it correctly to allow ref usage
-import type { default as ReactWebcam } from 'react-webcam';
-const Webcam = dynamic(
-  () => import('react-webcam').then((mod) => mod.default),
-  { ssr: false }
-) as typeof ReactWebcam;
+// Import react-webcam dynamically (avoid SSR issues)
+const Webcam = dynamic(() => import('react-webcam'), {
+  ssr: false,
+});
 
 export default function SelfiePage() {
-  const webcamRef = useRef<ReactWebcam>(null);
+  const webcamRef = useRef<any>(null); // Use 'any' here to avoid type error
   const [image, setImage] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
@@ -21,8 +19,8 @@ export default function SelfiePage() {
       const screenshot = webcamRef.current.getScreenshot();
       if (screenshot) {
         setImage(screenshot);
-        // You can send the image + quiz answers to backend here
-        // Example: fetch('/api/generate', { method: 'POST', body: JSON.stringify({ image, quiz: ... }) })
+        // Example: Send this + quiz params to backend API
+        // fetch('/api/generate', { method: 'POST', body: JSON.stringify({ image, quiz: ... }) })
       }
     }
   };
