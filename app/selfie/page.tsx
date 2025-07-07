@@ -1,31 +1,43 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRef, useState } from 'react';
 
-// ✅ Correct dynamic import
 const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
-function SelfiePageContent() {
-  const webcamRef = useRef(null);
-  const [screenshot, setScreenshot] = useState<string | null>(null);
-  const router = useRouter();
+export default function SelfiePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const webcamRef = useRef<any>(null);
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleCapture = useCallback(() => {
+  const handleCapture = () => {
     if (webcamRef.current) {
-      // @ts-ignore
       const imageSrc = webcamRef.current.getScreenshot();
       setScreenshot(imageSrc);
     }
-  }, []);
+  };
 
-  const handleContinue = () => {
+  const handleSubmit = async () => {
     if (!screenshot) return;
-    const query = new URLSearchParams(searchParams.toString());
-    query.set('selfie', encodeURIComponent(screenshot));
-    router.push(`/result?${query.toString()}`);
+    setLoading(true);
+
+    const questions: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const value = searchParams.get(`q${i}`);
+      if (value) questions.push(value);
+    }
+
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions, selfie: screenshot }),
+    });
+
+    const data = await response.json();
+    router.push(`/result?imageUrl=${encodeURIComponent(data.imageUrl)}`);
   };
 
   return (
@@ -43,30 +55,23 @@ function SelfiePageContent() {
           />
           <button
             onClick={handleCapture}
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl"
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl"
           >
-            Capture
+            Capture Selfie
           </button>
         </>
       ) : (
         <>
-          <img src={screenshot} alt="Your selfie" className="rounded-xl mb-4" />
+          <img src={screenshot} alt="Your selfie" className="rounded-xl border mb-4" />
           <button
-            onClick={handleContinue}
-            className="px-4 py-2 bg-green-600 text-white rounded-xl"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-green-600 text-white px-4 py-2 rounded-xl"
           >
-            Continue
+            {loading ? 'Generating Image...' : 'Submit & See Result'}
           </button>
         </>
       )}
     </main>
-  );
-}
-
-export default function SelfiePage() {
-  return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      <SelfiePageContent />
-    </React.Suspense>
   );
 }
