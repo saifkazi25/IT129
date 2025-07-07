@@ -1,78 +1,67 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRef, useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams, useRouter } from 'next/navigation';
 
-// Import react-webcam dynamically to avoid SSR issues
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false }) as any;
+// Dynamically import react-webcam with no SSR
+const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
-export default function SelfiePage() {
-  const searchParams = useSearchParams();
+function SelfiePageContent() {
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
-  const webcamRef = useRef(null);
-  const [captured, setCaptured] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [image, setImage] = useState<string | null>(null);
 
-  const handleCapture = () => {
+  const capture = () => {
     if (webcamRef.current) {
-      const imageSrc = (webcamRef.current as any).getScreenshot();
-      if (imageSrc) {
-        setCaptured(imageSrc);
+      const screenshot = webcamRef.current.getScreenshot();
+      if (screenshot) {
+        setImage(screenshot);
+        // Prepare query string
+        const queryString = Array.from(searchParams.entries())
+          .map(([key, value]) => `${key}=${value}`)
+          .join('&');
 
-        // Collect all quiz answers from query params
-        const params: { [key: string]: string } = {};
-        for (let i = 0; i < 7; i++) {
-          params[`q${i}`] = searchParams.get(`q${i}`) || '';
-        }
-
-        // Send data to the backend API
-        fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image: imageSrc,
-            ...params,
-          }),
-        })
-          .then(res => res.json())
-          .then(data => {
-            router.push(`/result?output=${encodeURIComponent(data.output)}`);
-          })
-          .catch(err => {
-            console.error('API error:', err);
-            alert('Something went wrong. Please try again.');
-          });
+        // Navigate to result page with image and query
+        router.push(`/result?image=${encodeURIComponent(screenshot)}&${queryString}`);
       }
     }
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
+      <h1 className="text-2xl font-bold mb-4">📸 Take Your Fantasy Selfie</h1>
 
-      <div>
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          className="rounded-xl border mb-4"
-          videoConstraints={{ facingMode: 'user' }}
-        />
-      </div>
+      <Webcam
+        ref={webcamRef}
+        audio={false}
+        screenshotFormat="image/jpeg"
+        className="rounded-xl border mb-4"
+        videoConstraints={{ facingMode: 'user' }}
+      />
 
       <button
-        onClick={handleCapture}
-        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+        onClick={capture}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
       >
-        Capture & Continue
+        Capture Selfie
       </button>
 
-      {captured && (
-        <div className="mt-6">
-          <p className="text-lg mb-2">Preview:</p>
-          <img src={captured} alt="Captured selfie" className="rounded-xl w-64 border" />
+      {image && (
+        <div className="mt-4">
+          <p className="text-lg font-semibold">Preview:</p>
+          <img src={image} alt="Selfie Preview" className="mt-2 rounded-lg border" />
         </div>
       )}
     </main>
+  );
+}
+
+export default function SelfiePage() {
+  return (
+    <Suspense fallback={<div className="text-center p-10">Loading...</div>}>
+      <SelfiePageContent />
+    </Suspense>
   );
 }
