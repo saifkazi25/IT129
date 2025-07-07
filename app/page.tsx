@@ -1,40 +1,26 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+export default function Home() {
+  const router = useRouter();
 
-export default function SelfiePage() {
-  const webcamRef = useRef<any>(null);
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
-
-  const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    setImgSrc(imageSrc);
+  const handleStart = () => {
+    router.push('/quiz');
   };
 
   return (
-    <div className="p-4">
-      {!imgSrc ? (
-        <>
-          <Webcam
-            ref={webcamRef}
-            audio={false}
-            screenshotFormat="image/jpeg"
-            className="rounded-xl border mb-4"
-            videoConstraints={{ facingMode: 'user' }}
-          />
-          <button
-            onClick={capture}
-            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
-          >
-            Capture
-          </button>
-        </>
-      ) : (
-        <img src={imgSrc} alt="Your selfie" className="rounded-xl border" />
-      )}
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-6">
+      <h1 className="text-4xl font-bold mb-6 text-center">🌌 Infinite Tsukuyomi</h1>
+      <p className="mb-4 text-lg text-center max-w-md">
+        Answer a few deep questions to explore the dream version of you — then let AI recreate it with a photo.
+      </p>
+      <button
+        onClick={handleStart}
+        className="mt-4 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-all"
+      >
+        Start the Quiz
+      </button>
+    </main>
   );
 }
