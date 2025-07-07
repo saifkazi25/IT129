@@ -12,7 +12,7 @@ type Props = {
 
 export default function WebcamCapture({ onCapture }: Props) {
   // Use 'any' for the ref to avoid TS namespace issues
-  const webcamRef = useRef<any>(null);
+  const webcamRef = useRef<any>(null);      // ← change is here
   const [captured, setCaptured] = useState<string | null>(null);
 
   const capture = () => {
