@@ -1,26 +1,64 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  const router = useRouter();
+// Load Webcam component dynamically (only on client side)
+const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
-  const handleStart = () => {
-    router.push('/quiz');
+export default function SelfiePage() {
+  const router = useRouter();
+  const webcamRef = useRef<any>(null);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+
+  const capture = () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      setImgSrc(imageSrc);
+    }
+  };
+
+  const handleContinue = () => {
+    if (imgSrc) {
+      const encodedImage = encodeURIComponent(imgSrc);
+      router.push(`/result?image=${encodedImage}`);
+    }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-6">
-      <h1 className="text-4xl font-bold mb-6 text-center">🌌 Infinite Tsukuyomi</h1>
-      <p className="mb-4 text-lg text-center max-w-md">
-        Answer a few deep questions to explore the dream version of you — then let AI recreate it with a photo.
-      </p>
-      <button
-        onClick={handleStart}
-        className="mt-4 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-all"
-      >
-        Start the Quiz
-      </button>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
+      <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
+
+      <div className="w-full max-w-sm">
+        {imgSrc ? (
+          <img src={imgSrc} alt="Your selfie" className="rounded-xl mb-4" />
+        ) : (
+          <Webcam
+            ref={webcamRef as any}
+            audio={false}
+            screenshotFormat="image/jpeg"
+            className="rounded-xl border mb-4"
+            videoConstraints={{ facingMode: 'user' }}
+          />
+        )}
+
+        {!imgSrc ? (
+          <button
+            onClick={capture}
+            className="w-full bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800"
+          >
+            Capture
+          </button>
+        ) : (
+          <button
+            onClick={handleContinue}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
+          >
+            Continue
+          </button>
+        )}
+      </div>
     </main>
   );
 }
