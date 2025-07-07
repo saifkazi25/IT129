@@ -1,68 +1,54 @@
-/* app/selfie/page.tsx */
 'use client';
 
 import { useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import type { MutableRefObject } from 'react';
 
-// Dynamically import react-webcam (avoids SSR issues)
+// Dynamic import to avoid SSR issues
 const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
 export default function SelfiePage() {
-  const webcamRef = useRef<any>(null);        // ✅ useRef<any> fixes TS error
+  const webcamRef = useRef<any>(null); // Use <any> to avoid TS error for now
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Pull quiz answers from URL
-  const quizAnswers: string[] = [];
-  for (let i = 1; i <= 7; i++) {
-    const ans = searchParams.get(`q${i}`);
-    if (ans) quizAnswers.push(ans);
-  }
-
-  /** Capture the webcam frame as a base64 JPEG */
   const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) setImgSrc(imageSrc);
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      setImgSrc(imageSrc);
+    }
   };
 
-  /** Send selfie + quiz answers to backend */
-  const generateFantasy = async () => {
-    if (!imgSrc || quizAnswers.length < 7) {
-      alert('Missing selfie or answers');
-      return;
+  const handleSubmit = async () => {
+    if (!imgSrc) return alert('Please take a photo first.');
+
+    const answers: Record<string, string> = {};
+    for (const [key, value] of searchParams.entries()) {
+      answers[key] = value;
     }
-    setLoading(true);
 
     try {
-      const res = await fetch('/api/generate', {
+      const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          selfieImage: imgSrc,
-          quizAnswers,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers, selfie: imgSrc }),
       });
 
-      const data = await res.json();
-      if (data.image) {
-        router.push(`/result?img=${encodeURIComponent(data.image)}`);
-      } else {
-        alert(data.error || 'Generation failed');
-      }
-    } catch (err) {
-      alert('Server error');
-    } finally {
-      setLoading(false);
+      const data = await response.json();
+      router.push(`/result?url=${encodeURIComponent(data.imageUrl)}`);
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('Something went wrong while generating your image.');
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
-      <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
+    <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-4">
+      <h1 className="text-3xl font-bold mb-6">Take a Selfie</h1>
 
       {!imgSrc ? (
         <>
@@ -75,26 +61,19 @@ export default function SelfiePage() {
           />
           <button
             onClick={capture}
-            className="bg-black text-white px-6 py-2 rounded-xl hover:bg-gray-800"
+            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800"
           >
-            Capture Selfie
+            📸 Capture
           </button>
         </>
       ) : (
         <>
-          <img src={imgSrc} alt="Captured" className="rounded-xl w-64 mb-4" />
+          <img src={imgSrc} alt="Captured" className="rounded-xl mb-4 border" />
           <button
-            onClick={generateFantasy}
-            disabled={loading}
-            className="bg-black text-white px-6 py-2 rounded-xl hover:bg-gray-800 disabled:opacity-50"
+            onClick={handleSubmit}
+            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800"
           >
-            {loading ? 'Creating your fantasy...' : 'Generate Fantasy Image'}
-          </button>
-          <button
-            onClick={() => setImgSrc(null)}
-            className="mt-2 text-sm underline text-gray-600"
-          >
-            Retake
+            🚀 Generate My Fantasy
           </button>
         </>
       )}
