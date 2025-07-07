@@ -3,8 +3,11 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useRef, useState } from 'react';
+import type * as ReactWebcam from 'react-webcam';
 
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+const Webcam = dynamic(() => import('react-webcam').then(mod => mod.default), {
+  ssr: false,
+}) as React.ComponentType<ReactWebcam.WebcamProps>;
 
 export default function SelfiePage() {
   const searchParams = useSearchParams();
