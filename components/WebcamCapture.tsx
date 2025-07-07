@@ -4,7 +4,7 @@ import React, { useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// TypeScript now sees react-webcam as “any”, so this is safe
+// Dynamically import react-webcam (we override types in react-webcam.d.ts)
 const Webcam = dynamic(() => import("react-webcam"), { ssr: false });
 
 export default function WebcamCapture() {
@@ -13,7 +13,10 @@ export default function WebcamCapture() {
   const webcamRef = useRef<any>(null);
   const [capturing, setCapturing] = useState(false);
 
-  const capture = useCallback(() => webcamRef.current?.getScreenshot(), []);
+  const capture = useCallback(() => {
+    if (!webcamRef.current) return null;
+    return webcamRef.current.getScreenshot();
+  }, []);
 
   const handleCapture = async () => {
     const img = capture();
@@ -36,7 +39,7 @@ export default function WebcamCapture() {
         alert(data.error || "Generation failed");
         setCapturing(false);
       }
-    } catch {
+    } catch (err) {
       alert("Error generating image");
       setCapturing(false);
     }
@@ -46,4 +49,18 @@ export default function WebcamCapture() {
     <div className="flex flex-col items-center space-y-4">
       <Webcam
         audio={false}
-        ref={we
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        className="rounded border"
+        videoConstraints={{ facingMode: "user" }}
+      />
+      <button
+        onClick={handleCapture}
+        disabled={capturing}
+        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+      >
+        {capturing ? "Generating..." : "Capture & Generate"}
+      </button>
+    </div>
+  );
+}
