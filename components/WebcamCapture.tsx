@@ -50,14 +50,14 @@ export default function WebcamCapture() {
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      {/* TypeScript workaround: use createElement to avoid 'ref' type issues */}
-      {React.createElement(Webcam, {
-        audio: false,
-        ref: webcamRef,
-        screenshotFormat: "image/jpeg",
-        className: "rounded border",
-        videoConstraints: { facingMode: "user" },
-      })}
+      {/* @ts-ignore */}
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        className="rounded border"
+        videoConstraints={{ facingMode: "user" }}
+      />
       <button
         onClick={handleCapture}
         disabled={capturing}
