@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const questions = [
+type Question = {
+  id: number;
+  question: string;
+  options: string[];
+};
+
+const questions: Question[] = [
   {
     id: 1,
     question: "You’re alone in a strange city at midnight. What do you do first?",
@@ -75,10 +81,18 @@ export default function QuizForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const unanswered = answers.find((a) => !a);
+    if (unanswered) {
+      alert("Please answer all the questions before continuing.");
+      return;
+    }
+
     const params = new URLSearchParams();
     answers.forEach((answer, index) => {
       params.append(`q${index + 1}`, answer);
     });
+
     router.push(`/selfie?${params.toString()}`);
   };
 
@@ -87,19 +101,22 @@ export default function QuizForm() {
       onSubmit={handleSubmit}
       className="space-y-8 max-w-xl mx-auto p-6 bg-white rounded-xl shadow-lg"
     >
+      <h1 className="text-2xl font-bold text-center">Let’s Begin</h1>
+
       {questions.map((q, index) => (
         <div key={q.id}>
           <p className="font-semibold text-lg mb-3">{q.question}</p>
           <div className="space-y-2">
             {q.options.map((option) => (
-              <label key={option} className="block">
+              <label key={option} className="block cursor-pointer">
                 <input
                   type="radio"
-                  name={`q${index}`}
+                  name={`q${index + 1}`}
                   value={option}
                   checked={answers[index] === option}
                   onChange={() => handleChange(index, option)}
                   className="mr-2"
+                  required
                 />
                 {option}
               </label>
@@ -107,6 +124,7 @@ export default function QuizForm() {
           </div>
         </div>
       ))}
+
       <button
         type="submit"
         className="mt-6 w-full bg-black text-white py-3 rounded-xl hover:bg-gray-800"
