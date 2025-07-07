@@ -3,12 +3,15 @@
 import { useRef, useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
+import type { MutableRefObject } from 'react';
 
-// Dynamically import react-webcam with no SSR
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+// Dynamic import for react-webcam
+const Webcam = dynamic(() => import('react-webcam') as any, {
+  ssr: false,
+}) as React.FC<any>;
 
 function SelfiePageContent() {
-  const webcamRef = useRef<any>(null);
+  const webcamRef: MutableRefObject<any> = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [image, setImage] = useState<string | null>(null);
@@ -18,12 +21,9 @@ function SelfiePageContent() {
       const screenshot = webcamRef.current.getScreenshot();
       if (screenshot) {
         setImage(screenshot);
-        // Prepare query string
         const queryString = Array.from(searchParams.entries())
-          .map(([key, value]) => `${key}=${value}`)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
           .join('&');
-
-        // Navigate to result page with image and query
         router.push(`/result?image=${encodeURIComponent(screenshot)}&${queryString}`);
       }
     }
