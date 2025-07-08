@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam | null>(null); // ✅ Updated type
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -13,16 +13,15 @@ export default function CustomWebcam() {
     const screenshot = webcamRef.current?.getScreenshot();
 
     if (!screenshot) {
-      console.error("❌ Failed to capture screenshot.");
-      alert("Could not capture image. Please try again.");
+      console.error("❌ No image captured from webcam.");
+      alert("Image capture failed. Please try again.");
       return;
     }
 
     const params = new URLSearchParams(searchParams.toString());
     params.set('image', screenshot);
 
-    console.log("✅ Captured and navigating with image param:", screenshot.slice(0, 50) + '...');
-
+    console.log("✅ Captured image. Redirecting...");
     router.push(`/result?${params.toString()}`);
   }, [searchParams, router]);
 
@@ -32,13 +31,13 @@ export default function CustomWebcam() {
         ref={webcamRef}
         audio={false}
         screenshotFormat="image/jpeg"
-        className="rounded-lg border border-gray-400 shadow-md"
+        className="rounded border border-gray-300 shadow-md"
         width={320}
         height={240}
       />
       <button
         onClick={capture}
-        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
       >
         Capture & Continue
       </button>
