@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import ResultDisplay from "../components/ResultDisplay";
+import ResultDisplay from "@/components/ResultDisplay";
 
 export default function ResultPage() {
   return (
