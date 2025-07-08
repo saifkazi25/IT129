@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useRef } from 'react';
-import Webcam, { WebcamProps } from 'react-webcam';
+import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+// ✅ Correct type: use `Webcam` type via `typeof` for useRef
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam | null>(null); // ✅ FIXED
+  const webcamRef = useRef<typeof Webcam | null>(null); // ✅ FINAL FIX
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -46,3 +47,4 @@ export default function CustomWebcam() {
     </div>
   );
 }
+
