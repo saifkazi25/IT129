@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
@@ -9,43 +9,30 @@ export default function CustomWebcam() {
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
-  const handleUserMedia = () => setReady(true);
-
-  const capture = useCallback(() => {
-    if (!ready || !webcamRef.current) return;
-
-    const dataUrl = webcamRef.current.getScreenshot();
-    if (!dataUrl) {
-      alert('Could not capture image, please retry.');
-      return;
+  const capture = () => {
+    if (!webcamRef.current) return;
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (imageSrc) {
+      localStorage.setItem('selfie', imageSrc);
+      router.push('/result');
     }
-
-    localStorage.setItem('selfieImage', dataUrl); // store selfie
-    router.push('/result');                       // go show result
-  }, [ready, router]);
+  };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4 mt-10">
       <Webcam
-        ref={webcamRef}
-        onUserMedia={handleUserMedia}
         audio={false}
-        mirrored
+        ref={webcamRef}
         screenshotFormat="image/jpeg"
-        className="rounded-xl shadow"
-        videoConstraints={{ facingMode: 'user', width: 320, height: 240 }}
+        onUserMedia={() => setReady(true)}
+        className="rounded-lg border border-gray-300"
       />
-
       <button
         onClick={capture}
         disabled={!ready}
-        className={`px-4 py-2 rounded-xl shadow transition ${
-          ready
-            ? 'bg-black text-white hover:bg-gray-800'
-            : 'bg-gray-400 text-white cursor-not-allowed'
-        }`}
+        className="bg-purple-600 text-white px-6 py-2 rounded-lg disabled:opacity-50"
       >
-        {ready ? '📷 Capture Selfie' : '🎥 Loading Camera...'}
+        Capture Selfie
       </button>
     </div>
   );
