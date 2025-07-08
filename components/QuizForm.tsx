@@ -1,46 +1,84 @@
-"use client";
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Webcam from "react-webcam";
+'use client';
+
+import { useState, useRef } from 'react';
+import Webcam from 'react-webcam';
+import { useRouter } from 'next/navigation';
 
 export default function QuizForm() {
-  const [answers, setAnswers] = useState<string[]>(Array(7).fill(""));
+  const [answers, setAnswers] = useState(Array(7).fill(''));
   const [selfie, setSelfie] = useState<string | null>(null);
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const questions = [
-    "What's the overall mood or vibe you crave most?",
-    "Pick a dream destination:",
-    "What kind of character are you in your fantasy?",
-    "What would you wear in that world?",
-    "What's the main setting or environment?",
-    "What’s the core theme of your world?",
-    "What supernatural element would be fun?",
+    'What is the overall *mood* of your dream world?',
+    'Where would it be set? (location or realm)',
+    'What would you look like in it? (e.g., elf, warrior, etc.)',
+    'What would you be wearing?',
+    'What would be in the background?',
+    'What kind of vibe or theme would it have?',
+    'What would be your special ability or role?',
   ];
 
   const handleChange = (index: number, value: string) => {
-    const newAnswers = [...answers];
-    newAnswers[index] = value;
-    setAnswers(newAnswers);
+    const updated = [...answers];
+    updated[index] = value;
+    setAnswers(updated);
   };
 
   const captureSelfie = () => {
-    const img = webcamRef.current?.getScreenshot?.();
-    if (img) setSelfie(img);
+    if (webcamRef.current) {
+      const img = webcamRef.current.getScreenshot();
+      if (img) {
+        setSelfie(img);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selfie) {
-      alert("Please capture your selfie first.");
+      setError('Please capture a selfie.');
       return;
     }
 
-    const params = new URLSearchParams();
-    answers.forEach((ans, i) => params.append(`q${i}`, ans));
-    params.append("image", selfie);
-    router.push(`/result?${params.toString()}`);
+    console.log("Submitting data:", {
+      answers,
+      selfie,
+    });
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q0: answers[0],
+          q1: answers[1],
+          q2: answers[2],
+          q3: answers[3],
+          q4: answers[4],
+          q5: answers[5],
+          q6: answers[6],
+          image: selfie,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error('API error:', data);
+        setError(data.error || 'Something went wrong.');
+        return;
+      }
+
+      router.push(`/result?image=${encodeURIComponent(data.image)}`);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError('Failed to generate fantasy image.');
+    }
   };
 
   return (
@@ -48,46 +86,49 @@ export default function QuizForm() {
       <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-center mb-4">✨ Build Your Fantasy</h1>
 
-        {questions.map((q, idx) => (
-          <div key={idx}>
-            <label className="block mb-2 font-semibold">{q}</label>
+        {questions.map((q, i) => (
+          <div key={i}>
+            <label className="block mb-1 font-medium">{q}</label>
             <input
               type="text"
-              value={answers[idx]}
-              onChange={(e) => handleChange(idx, e.target.value)}
-              className="w-full px-4 py-2 border rounded"
+              value={answers[i]}
+              onChange={(e) => handleChange(i, e.target.value)}
               required
+              className="w-full border px-3 py-2 rounded"
             />
           </div>
         ))}
 
-        <div className="my-4 text-center">
+        <div>
+          <p className="mb-2 font-medium">📸 Capture Your Selfie:</p>
           <Webcam
+            audio={false}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
-            width={320}
-            height={240}
+            className="w-full rounded border"
           />
           <button
             type="button"
             onClick={captureSelfie}
             className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
           >
-            📸 Capture Selfie
+            Capture Selfie
           </button>
           {selfie && (
             <div className="mt-4">
-              <p className="mb-2 font-medium">Your Selfie:</p>
-              <img src={selfie} alt="Captured Selfie" className="rounded shadow-md" />
+              <p className="mb-1 font-medium">Preview:</p>
+              <img src={selfie} alt="Selfie preview" className="rounded border" />
             </div>
           )}
         </div>
 
+        {error && <p className="text-red-600">{error}</p>}
+
         <button
           type="submit"
-          className="w-full px-4 py-3 bg-green-600 text-white font-bold rounded"
+          className="w-full py-3 mt-4 bg-purple-600 text-white font-bold rounded hover:bg-purple-700"
         >
-          🌌 Show Me My Fantasy
+          Submit & See My Fantasy
         </button>
       </form>
     </div>
