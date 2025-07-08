@@ -1,40 +1,37 @@
-import { NextResponse } from "next/server";
+// app/api/generate/route.ts
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
-  const { answers, image } = await req.json();
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { q0, q1, q2, q3, q4, q5, q6, image } = body;
 
-  if (!answers || !image) {
-    return NextResponse.json({ error: "Missing answers or image" }, { status: 400 });
+  if (!image || !q0 || !q1 || !q2 || !q3 || !q4 || !q5 || !q6) {
+    return NextResponse.json({ error: "Missing data" }, { status: 400 });
   }
 
-  try {
-    const prompt = `A fantasy portrait of the user based on: ${answers.join(", ")}`;
+  const prompt = `Fantasy World with mood: ${q0}, setting: ${q1}, character: ${q2}, outfit: ${q3}, background: ${q4}, theme: ${q5}, power: ${q6}.`;
 
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
-        "Content-Type": "application/json",
+  const response = await fetch("https://api.replicate.com/v1/predictions", {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      version: "REPLACE_WITH_MODEL_VERSION", // Replace this!
+      input: {
+        prompt: prompt,
+        image: image,
       },
-      body: JSON.stringify({
-        version: "a9758cbf0c39e88c8e5668b690520b8e3a21186a49b7410c2b6caa53b1d1e168", // SDXL version
-        input: {
-          prompt,
-          image,
-        },
-      }),
-    });
+    }),
+  });
 
-    const prediction = await response.json();
-    const imageUrl = prediction?.urls?.get;
-
-    if (!imageUrl) {
-      throw new Error("Failed to generate image");
-    }
-
-    return NextResponse.json({ imageUrl });
-  } catch (error) {
-    console.error("API error:", error);
-    return NextResponse.json({ error: "Image generation failed" }, { status: 500 });
+  if (!response.ok) {
+    return NextResponse.json({ error: "Failed to generate image" }, { status: 500 });
   }
+
+  const prediction = await response.json();
+
+  return NextResponse.json({ image: prediction.output });
 }
+
