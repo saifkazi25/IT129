@@ -50,4 +50,4 @@ Both models are called via Replicate's REST API.
 
 ---
 
-Happy hacking! ✨
+Happy hacking! ✨ yup
