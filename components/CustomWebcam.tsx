@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
