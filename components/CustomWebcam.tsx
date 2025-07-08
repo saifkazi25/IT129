@@ -1,10 +1,10 @@
 'use client';
 import { useRef, useState } from 'react';
-import Webcam from 'react-webcam';
+import ReactWebcam from 'react-webcam'; // ✅ renamed import
 import { useRouter } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam | null>(null); // ✅ Clean and correct type
+  const webcamRef = useRef<ReactWebcam | null>(null); // ✅ use correct type
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
@@ -20,7 +20,7 @@ export default function CustomWebcam() {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <Webcam
+      <ReactWebcam
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         onUserMedia={() => setReady(true)}
