@@ -3,34 +3,27 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Webcam from "react-webcam";
-import type { Webcam as WebcamType } from "react-webcam"; // ✅ type import fixes TS error
+
+// ✅ Correct way to get the type of the Webcam component
+type WebcamInstance = React.ElementRef<typeof Webcam>;
 
 export default function QuizForm() {
   const router = useRouter();
-
-  // 7 blank answers to start
   const [answers, setAnswers] = useState<string[]>(Array(7).fill(""));
-
-  // base64 selfie (null until captured)
   const [selfie, setSelfie] = useState<string | null>(null);
+  const webcamRef = useRef<WebcamInstance | null>(null);
 
-  // webcam ref (typed correctly)
-  const webcamRef = useRef<WebcamType | null>(null);
-
-  // update a single answer
   const handleAnswerChange = (index: number, value: string) => {
-    const updated = [...answers];
-    updated[index] = value;
-    setAnswers(updated);
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = value;
+    setAnswers(updatedAnswers);
   };
 
-  // take snapshot
   const captureSelfie = () => {
-    const img = webcamRef.current?.getScreenshot();
-    if (img) setSelfie(img);
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) setSelfie(imageSrc);
   };
 
-  // submit everything to the backend
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -62,7 +55,6 @@ export default function QuizForm() {
           ✨ Build Your Fantasy
         </h1>
 
-        {/* 7 question inputs */}
         {answers.map((answer, i) => (
           <input
             key={i}
@@ -74,7 +66,6 @@ export default function QuizForm() {
           />
         ))}
 
-        {/* Webcam or captured selfie */}
         {!selfie ? (
           <>
             <Webcam
@@ -94,7 +85,7 @@ export default function QuizForm() {
         ) : (
           <img
             src={selfie}
-            alt="Your Selfie"
+            alt="Captured Selfie"
             className="w-48 h-48 mx-auto rounded object-cover border"
           />
         )}
