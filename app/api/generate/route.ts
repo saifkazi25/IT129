@@ -1,64 +1,37 @@
-import { NextResponse } from 'next/server';
-import Replicate from 'replicate';
+import { NextRequest, NextResponse } from 'next/server';
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { selfie, keywords } = body;
+    const { selfie, answers } = body;
 
-    if (!selfie || !keywords) {
-      return NextResponse.json({ error: 'Missing selfie or keywords' }, { status: 400 });
-    }
+    const prompt = `A realistic fantasy image of a ${answers.q2} wearing a ${answers.q3}, set in a ${answers.q4}, feeling ${answers.q5}, with the theme of ${answers.q0} and location ${answers.q1}, with element of ${answers.q6}.`;
 
-    // Step 1: Generate fantasy background using SDXL
-    const sdxlOutput = await replicate.run(
-      'stability-ai/sdxl:ab811e428c1f0e8761a8393c07bfa5d01d22a7bdbb3fb8a2c3d194c31018c184',
-      {
+    const response = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "a9758cb3...your-sdxl-model-version",
         input: {
-          prompt: keywords,
-          width: 512,
-          height: 512,
+          prompt: prompt,
+          image: selfie,
         },
-      }
-    );
+      }),
+    });
 
-    const fantasyImage =
-      Array.isArray(sdxlOutput) && typeof sdxlOutput[0] === 'string'
-        ? sdxlOutput[0]
-        : null;
+    const json = await response.json();
 
-    if (!fantasyImage) {
-      return NextResponse.json({ error: 'Fantasy generation failed.' }, { status: 500 });
+    if (json?.error) {
+      console.error("Replicate API error:", json.error);
+      return NextResponse.json({ error: json.error }, { status: 500 });
     }
 
-    // Step 2: Face fusion with the selfie
-    const fusionOutput = await replicate.run(
-      'lucataco/modelscope-facefusion:1cfc4cce7a179e5bd84e06595eaf3b7cf6e4663f4a0517e7e720f547da5af144',
-      {
-        input: {
-          source_image: selfie,
-          target_image: fantasyImage,
-        },
-      }
-    );
-
-    const fusionImage = Array.isArray(fusionOutput)
-      ? fusionOutput[0]
-      : typeof fusionOutput === 'string'
-      ? fusionOutput
-      : null;
-
-    if (!fusionImage) {
-      return NextResponse.json({ error: 'Face fusion failed.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ image: fusionImage });
-  } catch (err: any) {
-    console.error('API error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ output: json });
+  } catch (err) {
+    console.error("API error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
