@@ -1,61 +1,56 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
 import ResultDisplay from '@/components/ResultDisplay';
 
-function ResultPageContent() {
+export default function ResultPage() {
   const searchParams = useSearchParams();
   const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchResult = async () => {
-      const selfie = localStorage.getItem('selfie');
-      if (!selfie) return;
+    const selfie = searchParams.get('selfie');
+    const answers = searchParams.get('answers');
 
-      setLoading(true);
+    console.log('📸 Selfie Param:', selfie);
+    console.log('🧠 Answers Param:', answers);
+
+    const fetchImage = async () => {
+      if (!selfie || !answers) return;
+
       try {
-        const res = await fetch('/api/generate', {
+        const response = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            selfie,
-            q0: searchParams.get('q0'),
-            q1: searchParams.get('q1'),
-            q2: searchParams.get('q2'),
-            q3: searchParams.get('q3'),
-            q4: searchParams.get('q4'),
-            q5: searchParams.get('q5'),
-            q6: searchParams.get('q6'),
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ selfie, answers }),
         });
 
-        const data = await res.json();
+        const data = await response.json();
+        console.log('🖼️ API response:', data);
+
         setImage(data.image);
-      } catch (err) {
-        console.error('Generation failed:', err);
+      } catch (error) {
+        console.error('❌ Failed to generate image:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchResult();
+    fetchImage();
   }, [searchParams]);
 
   return (
-    <main className="min-h-screen bg-white text-black p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-6">
       <h1 className="text-2xl font-bold mb-4">✨ Your Fantasy Image</h1>
       {loading && <p>Generating your dream world… please wait.</p>}
       {!loading && image && <ResultDisplay image={image} />}
+      {!loading && !image && (
+        <p className="text-red-600 font-medium">⚠️ Failed to generate image. Please try again.</p>
+      )}
     </main>
   );
 }
 
-export default function ResultPage() {
-  return (
-    <Suspense fallback={<p className="p-6">Loading your results...</p>}>
-      <ResultPageContent />
-    </Suspense>
-  );
-}
