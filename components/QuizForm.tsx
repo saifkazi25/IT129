@@ -9,7 +9,7 @@ export default function QuizForm() {
   const [answers, setAnswers] = useState(Array(7).fill(""));
   const [selfie, setSelfie] = useState<string | null>(null);
 
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<import("react-webcam").default | null>(null);
 
   const capture = () => {
     const img = webcamRef.current?.getScreenshot();
@@ -90,4 +90,3 @@ export default function QuizForm() {
     </form>
   );
 }
-
