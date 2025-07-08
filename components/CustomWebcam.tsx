@@ -5,13 +5,13 @@ import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // ✅ Fix: use 'any' to avoid TS error
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const capture = useCallback(() => {
     if (!webcamRef.current) {
-      console.error("❌ Webcam ref not ready");
+      console.error("Webcam not ready");
       return;
     }
 
@@ -38,7 +38,7 @@ export default function CustomWebcam() {
         height={240}
         className="rounded-xl shadow"
         videoConstraints={{
-          facingMode: "user"
+          facingMode: 'user'
         }}
       />
       <button
