@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Webcam from "react-webcam";
 
-// 👉 Explicit interface describing just what we need from the ref
+// Define type for webcamRef to satisfy TypeScript
 interface WebcamHandle {
   getScreenshot(): string | null;
 }
@@ -13,35 +13,41 @@ export default function QuizForm() {
   const router = useRouter();
   const [answers, setAnswers] = useState<string[]>(Array(7).fill(""));
   const [selfie, setSelfie] = useState<string | null>(null);
-
-  // ✅ ref now has the correct type, so TS recognises getScreenshot()
   const webcamRef = useRef<WebcamHandle | null>(null);
 
   const handleAnswerChange = (index: number, value: string) => {
-    const updated = [...answers];
-    updated[index] = value;
-    setAnswers(updated);
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = value;
+    setAnswers(updatedAnswers);
   };
 
   const captureSelfie = () => {
-    const img = webcamRef.current?.getScreenshot();
-    if (img) setSelfie(img);
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      setSelfie(imageSrc);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selfie) return alert("Please capture a selfie first!");
+    if (!selfie) {
+      alert("Please take a selfie first!");
+      return;
+    }
 
-    const res = await fetch("/api/generate", {
+    const response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answers, image: selfie }),
     });
 
-    if (!res.ok) return alert("Image generation failed.");
+    if (!response.ok) {
+      alert("Image generation failed.");
+      return;
+    }
 
-    const { image } = await res.json();
-    localStorage.setItem("generatedImage", image);
+    const data = await response.json();
+    localStorage.setItem("generatedImage", data.image);
     router.push("/result");
   };
 
@@ -50,13 +56,14 @@ export default function QuizForm() {
       <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-center mb-4">✨ Build Your Fantasy</h1>
 
-        {answers.map((ans, i) => (
+        {answers.map((answer, index) => (
           <input
-            key={i}
+            key={index}
+            type="text"
+            value={answer}
+            onChange={(e) => handleAnswerChange(index, e.target.value)}
+            placeholder={`Answer for Question ${index + 1}`}
             className="w-full border rounded p-2"
-            placeholder={`Answer for Question ${i + 1}`}
-            value={ans}
-            onChange={(e) => handleAnswerChange(i, e.target.value)}
             required
           />
         ))}
@@ -64,9 +71,9 @@ export default function QuizForm() {
         {!selfie ? (
           <>
             <Webcam
-              ref={webcamRef as any}          {/* casting ok because we typed handle above */}
-              audio={false}
+              ref={webcamRef as any}
               screenshotFormat="image/jpeg"
+              audio={false}
               className="rounded border w-full max-w-sm mx-auto"
             />
             <button
@@ -80,7 +87,7 @@ export default function QuizForm() {
         ) : (
           <img
             src={selfie}
-            alt="Selfie"
+            alt="Captured Selfie"
             className="w-48 h-48 mx-auto rounded object-cover border"
           />
         )}
@@ -95,5 +102,3 @@ export default function QuizForm() {
     </div>
   );
 }
-
-
