@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useRef, useCallback } from 'react';
-import Webcam from 'react-webcam';
+import Webcam, { WebcamProps } from 'react-webcam';
+import type { Webcam as WebcamComponent } from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<WebcamComponent | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
