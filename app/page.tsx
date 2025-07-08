@@ -3,16 +3,16 @@
 import React, { Suspense } from 'react';
 import CustomWebcam from '@/components/CustomWebcam';
 
-function WebcamWrapper() {
+function ClientOnlyWebcam() {
   return <CustomWebcam />;
 }
 
 export default function SelfiePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-white text-black p-4">
-      <h1 className="text-3xl font-bold mb-6">Step 3: Capture Your Selfie</h1>
-      <Suspense fallback={<p>Loading camera...</p>}>
-        <WebcamWrapper />
+    <main className="min-h-screen flex flex-col items-center justify-center bg-white text-black p-6">
+      <h1 className="text-3xl font-bold mb-6">Step 3: Take Your Selfie</h1>
+      <Suspense fallback={<p className="text-gray-500">Loading webcam...</p>}>
+        <ClientOnlyWebcam />
       </Suspense>
     </main>
   );
