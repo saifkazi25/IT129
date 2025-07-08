@@ -1,11 +1,13 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 
 function ClientResult() {
   const searchParams = useSearchParams();
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const q0 = searchParams.get('q0');
   const q1 = searchParams.get('q1');
@@ -16,13 +18,49 @@ function ClientResult() {
   const q6 = searchParams.get('q6');
   const selfie = searchParams.get('image');
 
-  const fantasyPrompt = `${q0}, ${q1}, ${q2}, ${q3}, ${q4}, ${q5}, ${q6}`;
+  const answers = [q0, q1, q2, q3, q4, q5, q6];
+
+  useEffect(() => {
+    async function generateFantasyImage() {
+      if (!selfie || answers.includes(null)) {
+        setError('Missing inputs or selfie.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            answers,
+            image: selfie,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.output) {
+          setGeneratedImage(data.output);
+        } else {
+          setError(data.error || 'Image generation failed.');
+        }
+      } catch (err) {
+        setError('Network error or server crashed.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    generateFantasyImage();
+  }, [selfie, ...answers]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       <h1 className="text-3xl font-bold mb-4 text-center">
         🧠 Your Fantasy is Loading...
       </h1>
+
       {selfie && (
         <div className="mb-6 text-center">
           <p className="text-sm text-gray-500 mb-2">Your Selfie:</p>
@@ -33,21 +71,28 @@ function ClientResult() {
           />
         </div>
       )}
+
       <p className="text-center text-lg font-medium mb-4">
-        Based on your answers: <br />
-        <span className="italic text-blue-600">{fantasyPrompt}</span>
+        Based on your answers:
+        <br />
+        <span className="italic text-blue-600">{answers.join(', ')}</span>
       </p>
 
-      {/* Image from replicate API - generatedResult */}
-      <div className="relative w-[300px] h-[300px] rounded-xl shadow-lg border border-gray-300 bg-gray-100">
-        <Image
-          src={`/api/generate?q0=${q0}&q1=${q1}&q2=${q2}&q3=${q3}&q4=${q4}&q5=${q5}&q6=${q6}&image=${encodeURIComponent(selfie ?? '')}`}
-          alt="Generated Fantasy"
-          layout="fill"
-          objectFit="cover"
-          className="rounded-xl"
+      {loading && <p className="text-gray-500">✨ Creating your fantasy image...</p>}
+
+      {error && (
+        <p className="text-red-500 text-sm text-center mt-4">
+          ❌ {error}
+        </p>
+      )}
+
+      {generatedImage && (
+        <img
+          src={generatedImage}
+          alt="Fantasy result"
+          className="mt-6 w-[300px] h-[300px] object-cover rounded-xl shadow-lg border"
         />
-      </div>
+      )}
     </div>
   );
 }
