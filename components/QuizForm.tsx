@@ -9,7 +9,7 @@ export default function QuizForm() {
   const [answers, setAnswers] = useState(Array(7).fill(""));
   const [selfie, setSelfie] = useState<string | null>(null);
 
-  const webcamRef = useRef<Webcam | null>(null); // ✅ FIXED TYPE
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ ✅ CORRECT TYPE
 
   const capture = () => {
     const img = webcamRef.current?.getScreenshot();
