@@ -5,23 +5,31 @@ import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<any>(null); // ✅ Fix: use any instead of Webcam type
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
 
+    console.log("📸 Captured image:", imageSrc);
+
     if (!imageSrc) {
-      alert("Couldn't capture image. Try again.");
+      alert("❌ Could not capture image. Try again.");
       return;
     }
 
-    const rawParams = searchParams?.toString() || '';
-    const params = new URLSearchParams(rawParams);
+    try {
+      const params = new URLSearchParams(searchParams?.toString() || '');
+      params.set('image', imageSrc);
 
-    params.set('image', imageSrc);
-    router.push(`/result?${params.toString()}`);
+      console.log("➡️ Navigating to /result with params:", params.toString());
+
+      router.push(`/result?${params.toString()}`);
+    } catch (err) {
+      console.error("⚠️ Failed to navigate:", err);
+      alert("Error navigating to result page. Check console.");
+    }
   };
 
   return (
@@ -33,6 +41,10 @@ export default function CustomWebcam() {
         width={320}
         height={240}
         className="rounded-xl shadow"
+        screenshotQuality={1}
+        videoConstraints={{
+          facingMode: "user"
+        }}
       />
       <button
         onClick={capture}
