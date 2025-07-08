@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<any>(null); // ✅ Fixed type
+  const webcamRef = useRef<any>(null); // Type-safe can be added later
   const [cameraReady, setCameraReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,24 +16,41 @@ export default function CustomWebcam() {
   };
 
   const capture = useCallback(() => {
-    console.log("🟡 Button clicked");
-    if (!webcamRef.current) {
-      console.warn("❌ Webcam ref is null");
+    console.log("🟡 Capture clicked");
+    if (!cameraReady || !webcamRef.current) {
+      console.warn("❌ Webcam not ready");
       return;
     }
 
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
-      console.warn("❌ Could not capture image");
+      alert("❌ Could not capture image.");
       return;
     }
 
-    console.log("📸 Captured image", imageSrc.slice(0, 50));
+    console.log("📸 Image captured:", imageSrc.slice(0, 50));
 
-    const params = new URLSearchParams(searchParams.toString());
+    // Manually extract all quiz answers from searchParams (not .toString())
+    const q0 = searchParams.get('q0') ?? '';
+    const q1 = searchParams.get('q1') ?? '';
+    const q2 = searchParams.get('q2') ?? '';
+    const q3 = searchParams.get('q3') ?? '';
+    const q4 = searchParams.get('q4') ?? '';
+    const q5 = searchParams.get('q5') ?? '';
+    const q6 = searchParams.get('q6') ?? '';
+
+    const params = new URLSearchParams();
+    params.set('q0', q0);
+    params.set('q1', q1);
+    params.set('q2', q2);
+    params.set('q3', q3);
+    params.set('q4', q4);
+    params.set('q5', q5);
+    params.set('q6', q6);
     params.set('image', imageSrc);
+
     router.push(`/result?${params.toString()}`);
-  }, [searchParams, router]);
+  }, [cameraReady, searchParams, router]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -50,9 +67,14 @@ export default function CustomWebcam() {
       />
       <button
         onClick={capture}
-        className="px-4 py-2 bg-blue-600 text-white rounded-xl shadow-md hover:bg-blue-800 transition"
+        disabled={!cameraReady}
+        className={`px-4 py-2 rounded-xl shadow-md transition ${
+          cameraReady
+            ? 'bg-black text-white hover:bg-gray-800'
+            : 'bg-gray-400 text-white cursor-not-allowed'
+        }`}
       >
-        📷 Take Selfie
+        {cameraReady ? '📷 Capture & See Your Fantasy' : '🎥 Loading Camera...'}
       </button>
     </div>
   );
