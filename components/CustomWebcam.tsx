@@ -1,10 +1,10 @@
 'use client';
 import { useRef, useState } from 'react';
-import Webcam from 'react-webcam'; // ✅ Don't rename it
+import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ Correct type usage
+  const webcamRef = useRef<Webcam>(null); // ✅ correct generic with component
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
