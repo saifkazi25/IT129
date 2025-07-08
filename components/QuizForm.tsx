@@ -2,71 +2,79 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Webcam, { WebcamProps } from "react-webcam";
+import Webcam from "react-webcam";
+import type { Webcam as WebcamType } from "react-webcam"; // ✅ type import fixes TS error
 
 export default function QuizForm() {
   const router = useRouter();
-  const [answers, setAnswers] = useState(Array(7).fill(""));
+
+  // 7 blank answers to start
+  const [answers, setAnswers] = useState<string[]>(Array(7).fill(""));
+
+  // base64 selfie (null until captured)
   const [selfie, setSelfie] = useState<string | null>(null);
 
-  // ✅ FIXED TYPE: Explicitly define webcam ref using Webcam type
-  const webcamRef = useRef<Webcam | null>(null);
+  // webcam ref (typed correctly)
+  const webcamRef = useRef<WebcamType | null>(null);
 
+  // update a single answer
   const handleAnswerChange = (index: number, value: string) => {
-    const updatedAnswers = [...answers];
-    updatedAnswers[index] = value;
-    setAnswers(updatedAnswers);
+    const updated = [...answers];
+    updated[index] = value;
+    setAnswers(updated);
   };
 
+  // take snapshot
   const captureSelfie = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setSelfie(imageSrc);
-    }
+    const img = webcamRef.current?.getScreenshot();
+    if (img) setSelfie(img);
   };
 
+  // submit everything to the backend
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selfie) {
-      alert("Please capture a selfie first.");
+      alert("Please capture a selfie first!");
       return;
     }
 
     const res = await fetch("/api/generate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answers, image: selfie }),
     });
 
-    const data = await res.json();
-
-    if (res.ok && data?.image) {
-      localStorage.setItem("generatedImage", data.image);
-      router.push("/result");
-    } else {
-      alert("Failed to generate image.");
+    if (!res.ok) {
+      alert("Image generation failed. Try again.");
+      return;
     }
+
+    const { image } = await res.json();
+    localStorage.setItem("generatedImage", image);
+    router.push("/result");
   };
 
   return (
     <div className="min-h-screen p-6 bg-white text-black">
       <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-center mb-4">✨ Build Your Fantasy</h1>
+        <h1 className="text-3xl font-bold text-center mb-4">
+          ✨ Build Your Fantasy
+        </h1>
 
-        {answers.map((answer, index) => (
+        {/* 7 question inputs */}
+        {answers.map((answer, i) => (
           <input
-            key={index}
+            key={i}
             className="w-full border rounded p-2"
-            placeholder={`Answer for Question ${index + 1}`}
+            placeholder={`Answer for Question ${i + 1}`}
             value={answer}
-            onChange={(e) => handleAnswerChange(index, e.target.value)}
+            onChange={(e) => handleAnswerChange(i, e.target.value)}
             required
           />
         ))}
 
+        {/* Webcam or captured selfie */}
         {!selfie ? (
           <>
             <Webcam
@@ -86,7 +94,7 @@ export default function QuizForm() {
         ) : (
           <img
             src={selfie}
-            alt="Captured Selfie"
+            alt="Your Selfie"
             className="w-48 h-48 mx-auto rounded object-cover border"
           />
         )}
