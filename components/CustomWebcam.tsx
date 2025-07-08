@@ -19,14 +19,13 @@ export default function CustomWebcam() {
     const tryCapture = () => {
       const imageSrc = webcamRef.current?.getScreenshot();
 
-      console.log("Captured image base64 start:", imageSrc?.substring(0, 100));
-
       if (!imageSrc) {
         console.warn("Screenshot not ready, retrying...");
-        setTimeout(tryCapture, 300); // retry in 300ms
+        setTimeout(tryCapture, 300);
         return;
       }
 
+      console.log("Image captured:", imageSrc.substring(0, 100));
       const params = new URLSearchParams(searchParams.toString());
       params.set('image', imageSrc);
       router.push(`/result?${params.toString()}`);
@@ -41,3 +40,29 @@ export default function CustomWebcam() {
         ref={webcamRef}
         audio={false}
         screenshotFormat="image/jpeg"
+        width={320}
+        height={240}
+        className="rounded-xl shadow"
+        onUserMedia={() => {
+          console.log("Webcam ready");
+          setCameraReady(true);
+        }}
+        onUserMediaError={(err) => {
+          console.error("Webcam error:", err);
+          alert("Please allow camera access.");
+        }}
+        videoConstraints={{
+          width: 640,
+          height: 480,
+          facingMode: 'user',
+        }}
+      />
+      <button
+        onClick={capture}
+        className="px-4 py-2 bg-black text-white rounded-xl shadow-md hover:bg-gray-800 transition"
+      >
+        Capture & See Your Fantasy
+      </button>
+    </div>
+  );
+}
