@@ -1,42 +1,47 @@
 "use client";
 
-import { useRef } from "react";
+import React, { useRef } from "react";
+import Webcam from "react-webcam";
 import { useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
 
-// Dynamically import react-webcam (client-only)
-const Webcam = dynamic(() => import("react-webcam"), { ssr: false });
-// TypeScript fix: tell TS this component accepts any props
-const WebcamAny = Webcam as unknown as React.ComponentType<Record<string, unknown>>;
-
-export default function WebcamCapture() {
-  const webcamRef = useRef(null);
+export default function CustomWebcam() {
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const handleCapture = () => {
-    // @ts-ignore – we're confident webcamRef works at runtime
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      const query = new URLSearchParams(searchParams as any);
-      query.set("selfie", imageSrc);
-      router.push(`/result?${query.toString()}`);
+  const capture = () => {
+    if (
+      webcamRef.current &&
+      typeof webcamRef.current.getScreenshot === "function"
+    ) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (imageSrc) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("image", imageSrc);
+        router.push(`/result?${params.toString()}`);
+      } else {
+        alert("Selfie failed. Couldn't capture image. Try again.");
+      }
     } else {
-      alert("Selfie failed. Please allow camera access and try again.");
+      alert("Camera is not ready. Please wait or refresh the page.");
     }
   };
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <WebcamAny
+      <h2 className="text-xl font-bold mb-4">📸 Take a Selfie</h2>
+      <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         className="rounded-lg shadow-lg w-full max-w-sm"
+        videoConstraints={{
+          facingMode: "user",
+        }}
       />
       <button
-        onClick={handleCapture}
-        className="mt-4 px-6 py-2 rounded-xl bg-black text-white text-lg font-semibold hover:bg-gray-800"
+        onClick={capture}
+        className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition"
       >
         Generate My Fantasy Image
       </button>
