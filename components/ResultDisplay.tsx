@@ -1,27 +1,22 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import Image from 'next/image';
 
-export default function ResultDisplay() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const image = searchParams.get("image");
+interface ResultDisplayProps {
+  image: string;
+}
 
+export default function ResultDisplay({ image }: ResultDisplayProps) {
   return (
-    <div className="p-6 flex flex-col items-center space-y-6">
-      <h2 className="text-3xl font-bold text-center">🌌 Your Fantasy Unlocked</h2>
-      {image ? (
-        <img src={image} alt="Fantasy Result" className="rounded-lg max-w-full" />
-      ) : (
-        <p>No image generated.</p>
-      )}
-      <button
-        onClick={() => router.push("/")}
-        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-      >
-        Start Over
-      </button>
+    <div className="flex flex-col items-center">
+      <Image
+        src={image}
+        alt="Generated Fantasy"
+        width={512}
+        height={512}
+        className="rounded-xl shadow-lg"
+      />
+      <p className="mt-4 text-lg font-semibold text-center">Here’s your fantasy world ✨</p>
     </div>
   );
 }
