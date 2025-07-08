@@ -4,13 +4,11 @@ import React, { useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// Dynamically import Webcam
+// Dynamically import react-webcam (avoids server-side issues)
 const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
-// Import type separately
-import type WebcamType from 'react-webcam';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<WebcamType | null>(null);
+  const webcamRef = useRef<any>(null); // Temporarily use `any` to bypass TS errors
   const router = useRouter();
   const searchParams = useSearchParams();
 
