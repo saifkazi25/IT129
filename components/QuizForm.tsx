@@ -2,13 +2,15 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Webcam from "react-webcam";
+import Webcam, { WebcamProps } from "react-webcam";
 
 export default function QuizForm() {
   const router = useRouter();
   const [answers, setAnswers] = useState(Array(7).fill(""));
   const [selfie, setSelfie] = useState<string | null>(null);
-  const webcamRef = useRef<Webcam>(null);
+
+  // ✅ FIXED TYPE: Explicitly define webcam ref using Webcam type
+  const webcamRef = useRef<Webcam | null>(null);
 
   const handleAnswerChange = (index: number, value: string) => {
     const updatedAnswers = [...answers];
@@ -27,7 +29,7 @@ export default function QuizForm() {
     e.preventDefault();
 
     if (!selfie) {
-      alert("Please capture a selfie before submitting.");
+      alert("Please capture a selfie first.");
       return;
     }
 
@@ -40,11 +42,12 @@ export default function QuizForm() {
     });
 
     const data = await res.json();
+
     if (res.ok && data?.image) {
       localStorage.setItem("generatedImage", data.image);
       router.push("/result");
     } else {
-      alert("Failed to generate image");
+      alert("Failed to generate image.");
     }
   };
 
