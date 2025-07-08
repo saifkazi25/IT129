@@ -13,7 +13,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-webcam": "^7.0.1",
-    "replicate": "^0.23.1"
+    "replicate": "^0.14.5"
   },
   "devDependencies": {
     "@types/node": "20.4.2",
