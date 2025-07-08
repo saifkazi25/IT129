@@ -1,22 +1,49 @@
 'use client';
 
-import React, { forwardRef, type Ref } from 'react';
+import React, { useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-type Props = React.ComponentProps<typeof Webcam>;
+export default function CustomWebcam() {
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ SAFE TYPE
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-// ✅ Use HTMLVideoElement for the ref type
-const CustomWebcam = forwardRef((props: Props, ref: Ref<HTMLVideoElement>) => (
-  <Webcam
-    ref={ref}
-    audio={false}
-    screenshotFormat="image/jpeg"
-    className="rounded-xl border mb-4"
-    videoConstraints={{ facingMode: 'user' }}
-    {...props}
-  />
-));
+  const capture = useCallback(() => {
+    if (!webcamRef.current) {
+      console.error("Webcam not ready");
+      return;
+    }
 
-CustomWebcam.displayName = 'CustomWebcam';
+    const imageSrc = webcamRef.current.getScreenshot();
+    console.log("Image captured:", imageSrc);
 
-export default CustomWebcam;
+    if (!imageSrc) {
+      alert("Couldn't capture image. Try again.");
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('image', imageSrc);
+    router.push(`/result?${params.toString()}`);
+  }, [searchParams, router]);
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <Webcam
+        ref={webcamRef}
+        audio={false}
+        screenshotFormat="image/jpeg"
+        width={320}
+        height={240}
+        className="rounded-xl shadow"
+      />
+      <button
+        onClick={capture}
+        className="px-4 py-2 bg-black text-white rounded-xl shadow-md hover:bg-gray-800 transition"
+      >
+        Capture & See Your Fantasy
+      </button>
+    </div>
+  );
+}
