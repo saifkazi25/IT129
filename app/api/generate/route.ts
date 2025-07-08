@@ -1,69 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
-export const runtime = 'nodejs';
-
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
+  auth: process.env.REPLICATE_API_TOKEN || '', // Set this in your Vercel env vars
 });
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { selfie, template, prompt } = body;
-
-  if (!selfie || !template || !prompt) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
-
+export async function POST(req: Request) {
   try {
-    // Step 1: Fuse Selfie with Template using FaceFusion
-    const fusionOutput = await replicate.run(
-      'lucataco/modelscope-facefusion:15e1f7b7b4c1dbe2be99d1c0c28ef915c614abfda2084167394e795b5d3e4a31',
+    const { answers, selfie } = await req.json();
+
+    if (!answers || !selfie) {
+      return NextResponse.json({ error: 'Missing answers or selfie.' }, { status: 400 });
+    }
+
+    // 👇 Combine answers into a prompt
+    const prompt = `Create a beautiful cinematic scene that captures someone's deepest fantasy: ${answers.join(', ')}.`;
+
+    // Step 1: Generate fantasy image using SDXL
+    const output = await replicate.run(
+      'stability-ai/sdxl:1d6adf4e33e2c89163ef79b3c2609ee5bb62c0d9244c0a1679b36c0e51b9f177',
       {
         input: {
-          source_image: selfie,
-          target_image: template,
+          prompt,
+          width: 768,
+          height: 768,
+          guidance_scale: 7,
         },
       }
     );
 
+    if (!output || !Array.isArray(output) || output.length === 0) {
+      return NextResponse.json({ error: 'Image generation failed.' }, { status: 500 });
+    }
+
+    // Step 2: Face fusion with the selfie
+    const faceFusion = await replicate.models.get('lucataco/modelscope-facefusion');
+    const fusionOutput = await faceFusion.predict({
+      input: {
+        source_image: selfie,  // base64 selfie
+        target_image: output[0],  // fantasy image
+      },
+    });
+
+    // ✅ Fix: cast type so TypeScript allows `.image`
     const fusionImage = Array.isArray(fusionOutput)
       ? fusionOutput[0]
-      : fusionOutput?.image || null;
+      : (fusionOutput as { image?: string })?.image || null;
 
     if (!fusionImage) {
       throw new Error('Face fusion failed.');
     }
 
-    // Step 2: Feed fused image into SDXL with fantasy prompt
-    const finalImageOutput = await replicate.run(
-      'stability-ai/sdxl:db21e45e97e041d10fe32c9bfa4d90d61a26b37813ce327f3a7d5cd529b61790',
-      {
-        input: {
-          prompt: prompt,
-          image: fusionImage,
-          image_mode: 'image_and_text',
-          width: 1024,
-          height: 1024,
-          refine: 'expert_ensemble_refiner',
-          scheduler: 'K_EULER',
-          num_inference_steps: 50,
-          guidance_scale: 7.5,
-        },
-      }
-    );
-
-    const finalImage = Array.isArray(finalImageOutput)
-      ? finalImageOutput[0]
-      : finalImageOutput?.image || null;
-
-    if (!finalImage) {
-      throw new Error('Final fantasy generation failed.');
-    }
-
-    return NextResponse.json({ url: finalImage });
-  } catch (error: any) {
-    console.error('Error generating fantasy:', error);
-    return NextResponse.json({ error: error.message || 'Something went wrong' }, { status: 500 });
+    return NextResponse.json({ url: fusionImage });
+  } catch (err: any) {
+    console.error('Error in /api/generate:', err);
+    return NextResponse.json({ error: 'Internal Server Error', details: err.message }, { status: 500 });
   }
 }
