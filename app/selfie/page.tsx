@@ -1,15 +1,39 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { useEffect } from 'react';
 import CustomWebcam from '@/components/CustomWebcam';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    const answers = [
+      searchParams.get('q0'),
+      searchParams.get('q1'),
+      searchParams.get('q2'),
+      searchParams.get('q3'),
+      searchParams.get('q4'),
+      searchParams.get('q5'),
+      searchParams.get('q6'),
+    ];
+
+    if (answers.includes(null)) {
+      alert("Missing some quiz answers. Please go back and try again.");
+      router.push('/');
+      return;
+    }
+
+    // Save answers in localStorage
+    localStorage.setItem('answers', JSON.stringify(answers));
+  }, [searchParams, router]);
+
   return (
-    <Suspense fallback={<div className="p-10 text-center text-gray-400">Loading camera...</div>}>
-      <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-white text-black">
-        <h1 className="text-2xl font-bold mb-4 text-center">Smile! Let’s capture your fantasy face 😎</h1>
-        <CustomWebcam />
-      </main>
-    </Suspense>
+    <main className="min-h-screen flex flex-col items-center justify-center p-6">
+      <h1 className="text-3xl font-bold mb-6 text-center">📸 Take Your Selfie</h1>
+      <CustomWebcam />
+    </main>
   );
 }
+
