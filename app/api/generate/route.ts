@@ -17,15 +17,18 @@ export async function POST(req: Request) {
     const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}. Merge with selfie.`;
     console.log('📨 Prompt to Replicate:', prompt);
 
-    const output = await replicate.run("lucataco/modelscope-facefusion", {
-      input: {
-        template: "stabilityai/stable-diffusion-xl",
-        target_image: image,
-        prompt: prompt,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
-      },
-    });
+    const output = await replicate.run(
+      "lucataco/modelscope-facefusion:14b80471165f13b3e73b3aecee30573583b9a3293d025d3b25623a54cbe7e3e6",
+      {
+        input: {
+          template: "stabilityai/stable-diffusion-xl",
+          target_image: image,
+          prompt: prompt,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+        },
+      }
+    );
 
     console.log('✅ Replicate image generated:', output);
     return NextResponse.json({ output });
