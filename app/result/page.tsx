@@ -1,68 +1,51 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 
 export default function ResultPage() {
-  const [prompt, setPrompt] = useState('');
-  const [selfie, setSelfie] = useState<string | null>(null);
-  const [generated, setGenerated] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const answers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
-    const selfieData = localStorage.getItem('selfieImage');
+    const answersStr = localStorage.getItem('quizAnswers');
+    const selfieImage = localStorage.getItem('selfieImage');
 
-    if (!selfieData || answers.length !== 7) {
+    if (!answersStr || !selfieImage) {
       setError('Missing data — please redo quiz & selfie.');
+      setLoading(false);
       return;
     }
 
-    setPrompt(answers.join(', '));
-    setSelfie(selfieData);
+    const answers = JSON.parse(answersStr);
 
-    (async () => {
-      try {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers, image: selfieData }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'API error');
-        setGenerated(data.output);
-      } catch (e: any) {
-        setError(e.message);
-      }
-    })();
+    fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, image: selfieImage }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.output) {
+          setOutputUrl(data.output);
+        } else {
+          setError(data.error || 'Image generation failed.');
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Something went wrong.');
+        setLoading(false);
+      });
   }, []);
 
-  if (error)
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        {error}
-      </div>
-    );
+  if (loading) return <p>🌀 Generating your fantasy...</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
 
   return (
-    <div className="min-h-screen flex flex-col items-center gap-6 p-8">
-      <h1 className="text-3xl font-bold">🧙‍♂️ Your Fantasy</h1>
-
-      {selfie && (
-        <img src={selfie} alt="Selfie" className="w-40 h-40 rounded-xl object-cover" />
-      )}
-
-      <p className="italic text-blue-600 text-center">{prompt}</p>
-
-      <div className="relative w-[300px] h-[300px] rounded-xl border shadow">
-        {generated ? (
-          <Image src={generated} alt="Result" layout="fill" objectFit="cover" className="rounded-xl" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-            Generating…
-          </div>
-        )}
-      </div>
+    <div className="text-center space-y-4">
+      <h1 className="text-2xl font-bold">🌌 Your Fantasy World</h1>
+      {outputUrl && <img src={outputUrl} alt="Fantasy result" className="mx-auto rounded" />}
     </div>
   );
 }
