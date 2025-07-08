@@ -1,32 +1,44 @@
 'use client';
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<any>(null); // ✅ Fix: use 'any' to avoid TS error
+  const webcamRef = useRef<Webcam>(null);
+  const [cameraReady, setCameraReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  useEffect(() => {
+    console.log("Webcam component mounted ✅");
+  }, []);
+
+  const handleUserMedia = () => {
+    console.log("Webcam access granted 🎥");
+    setCameraReady(true);
+  };
+
   const capture = useCallback(() => {
-    if (!webcamRef.current) {
-      console.error("Webcam not ready");
+    if (!cameraReady || !webcamRef.current) {
+      console.warn("❌ Webcam not ready yet.");
       return;
     }
 
     const imageSrc = webcamRef.current.getScreenshot();
-    console.log("📸 Image captured:", imageSrc);
 
     if (!imageSrc) {
-      alert("❌ Couldn't capture image. Try again.");
+      console.error("🚫 Image capture failed");
+      alert("Could not capture image. Please try again.");
       return;
     }
+
+    console.log("📸 Image captured:", imageSrc.slice(0, 50)); // just preview
 
     const params = new URLSearchParams(searchParams.toString());
     params.set('image', imageSrc);
     router.push(`/result?${params.toString()}`);
-  }, [searchParams, router]);
+  }, [cameraReady, searchParams, router]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -36,16 +48,20 @@ export default function CustomWebcam() {
         screenshotFormat="image/jpeg"
         width={320}
         height={240}
+        onUserMedia={handleUserMedia}
         className="rounded-xl shadow"
-        videoConstraints={{
-          facingMode: 'user'
-        }}
+        videoConstraints={{ facingMode: 'user' }}
       />
       <button
         onClick={capture}
-        className="px-4 py-2 bg-black text-white rounded-xl shadow-md hover:bg-gray-800 transition"
+        disabled={!cameraReady}
+        className={`px-4 py-2 rounded-xl shadow-md transition ${
+          cameraReady
+            ? 'bg-black text-white hover:bg-gray-800'
+            : 'bg-gray-400 text-white cursor-not-allowed'
+        }`}
       >
-        Capture & See Your Fantasy
+        {cameraReady ? '📷 Capture & See Your Fantasy' : '🎥 Loading Camera...'}
       </button>
     </div>
   );
