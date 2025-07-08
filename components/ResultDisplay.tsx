@@ -1,38 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-type ResultDisplayProps = {
-  image?: string;
-};
+export default function ResultDisplay() {
+  const searchParams = useSearchParams();
+  const url = searchParams.get("url");
 
-export default function ResultDisplay({ image }: ResultDisplayProps) {
-  const [img, setImg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (image) {
-      setImg(image);
-    } else {
-      const stored = localStorage.getItem("generatedImage");
-      if (stored) setImg(stored);
-    }
-  }, [image]);
-
-  if (!img)
+  if (!url) {
     return (
-      <p className="text-center mt-20 text-red-500">
-        No result found. Go back and take the quiz first!
-      </p>
+      <div className="text-center text-red-600 p-4">
+        ❌ No image URL found. Please try the quiz again.
+      </div>
     );
+  }
 
   return (
-    <div className="flex flex-col items-center gap-4 mt-8">
-      <h1 className="text-3xl font-bold">🌟 Your Ultimate Fantasy 🌟</h1>
-      <img
-        src={img}
-        alt="AI generated fantasy"
-        className="max-w-full rounded-xl shadow-lg"
-      />
+    <div className="min-h-screen bg-white text-black p-6 flex flex-col items-center">
+      <h1 className="text-3xl font-bold mb-4">🌈 Your Fantasy Revealed</h1>
+      <img src={url} alt="Generated Fantasy" className="rounded shadow-xl max-w-full" />
+      <p className="mt-4 text-lg">Save or share your dream world!</p>
     </div>
   );
 }
+
