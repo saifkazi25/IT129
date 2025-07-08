@@ -1,15 +1,21 @@
 'use client';
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ SAFE TYPE
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const capture = useCallback(() => {
+    if (!cameraReady) {
+      alert("Camera is not ready yet. Please allow access and wait a few seconds.");
+      return;
+    }
+
     if (!webcamRef.current) {
       console.error("Webcam not ready");
       return;
@@ -26,7 +32,7 @@ export default function CustomWebcam() {
     const params = new URLSearchParams(searchParams.toString());
     params.set('image', imageSrc);
     router.push(`/result?${params.toString()}`);
-  }, [searchParams, router]);
+  }, [searchParams, router, cameraReady]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -37,6 +43,14 @@ export default function CustomWebcam() {
         width={320}
         height={240}
         className="rounded-xl shadow"
+        onUserMedia={() => {
+          console.log("Camera access granted");
+          setCameraReady(true);
+        }}
+        onUserMediaError={(err) => {
+          console.error("Camera access denied", err);
+          alert("Camera access denied. Please allow camera access in your browser.");
+        }}
       />
       <button
         onClick={capture}
