@@ -1,64 +1,52 @@
 'use client';
 
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<any>(null); // ✅ FIXED: removed type issue
+  const webcamRef = useRef<Webcam | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const handleUserMedia = () => {
-    console.log("✅ Webcam ready");
     setCameraReady(true);
   };
 
   const capture = useCallback(() => {
-    if (!cameraReady || !webcamRef.current) {
-      console.warn("❌ Webcam not ready or null");
-      return;
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (imageSrc) {
+        localStorage.setItem('selfie', imageSrc);
+
+        const answers = Array.from({ length: 7 }, (_, i) => searchParams.get(`q${i}`) || '');
+        localStorage.setItem('answers', JSON.stringify(answers));
+
+        router.push('/result');
+      }
     }
-
-    const imageSrc = webcamRef.current.getScreenshot();
-
-    if (!imageSrc) {
-      alert("Could not capture image.");
-      return;
-    }
-
-    console.log("📸 Image captured:", imageSrc.slice(0, 50)); // preview
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('image', imageSrc);
-    router.push(`/result?${params.toString()}`);
-  }, [cameraReady, searchParams, router]);
+  }, [searchParams, router]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center space-y-4">
       <Webcam
-        ref={webcamRef}
         audio={false}
+        ref={webcamRef}
         screenshotFormat="image/jpeg"
-        onUserMedia={handleUserMedia}
-        width={320}
-        height={240}
-        className="rounded-xl shadow"
         videoConstraints={{ facingMode: 'user' }}
+        onUserMedia={handleUserMedia}
+        className="rounded-lg border border-gray-300 w-[320px] h-[240px]"
       />
       <button
         onClick={capture}
         disabled={!cameraReady}
-        className={`px-4 py-2 rounded-xl shadow-md transition ${
-          cameraReady
-            ? 'bg-black text-white hover:bg-gray-800'
-            : 'bg-gray-400 text-white cursor-not-allowed'
+        className={`px-6 py-2 rounded-lg font-bold text-white ${
+          cameraReady ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
         }`}
       >
-        {cameraReady ? '📷 Capture & See Your Fantasy' : '🎥 Loading Camera...'}
+        {cameraReady ? '📸 Capture Selfie' : 'Loading Camera...'}
       </button>
     </div>
   );
 }
-
