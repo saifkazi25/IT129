@@ -1,49 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
+// /app/api/generate/route.ts
+import { NextResponse } from 'next/server';
+import Replicate from 'replicate';
 
-export const runtime = 'edge'; // for faster execution
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN || '',
+});
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { selfie, description } = body;
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { prompt, image } = body;
 
-  if (!selfie || !description) {
-    return NextResponse.json({ error: 'Missing input' }, { status: 400 });
-  }
+    if (!prompt || !image) {
+      return NextResponse.json({ error: 'Missing prompt or image' }, { status: 400 });
+    }
 
-  const replicateResponse = await fetch('https://api.replicate.com/v1/predictions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      version: 'lucataco/modelscope-facefusion', // change if you're using another model
-      input: {
-        target_image: selfie,
-        prompt: description,
-      },
-    }),
-  });
+    const output = await replicate.run(
+      'lucataco/modelscope-facefusion:5fd66f1b93d6ed8b06c228c1f3b3b1fbc774d78f1e7c89f7c2b54d50f0382f42',
+      {
+        input: {
+          template_image: prompt,
+          user_image: image,
+        },
+      }
+    );
 
-  const data = await replicateResponse.json();
-
-  if (replicateResponse.status !== 201) {
-    return NextResponse.json({ error: data.detail || 'Error generating image' }, { status: 500 });
-  }
-
-  // Poll the status URL until complete
-  let prediction = data;
-  while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
-    await new Promise((r) => setTimeout(r, 2000));
-    const res = await fetch(prediction.urls.get, {
-      headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}` },
-    });
-    prediction = await res.json();
-  }
-
-  if (prediction.status === 'succeeded') {
-    return NextResponse.json({ image: prediction.output });
-  } else {
-    return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
+    return NextResponse.json({ image: output });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });
   }
 }
