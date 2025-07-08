@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<any>(null); // <-- fixed the typing issue
+  const webcamRef = useRef<any>(null); // ✅ Fix: use any instead of Webcam type
   const router = useRouter();
   const searchParams = useSearchParams();
 
