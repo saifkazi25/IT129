@@ -1,22 +1,30 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
+import { useEffect, useState } from "react";
 
-interface ResultDisplayProps {
-  image: string;
-}
+export default function ResultDisplay() {
+  const [image, setImage] = useState<string | null>(null);
 
-export default function ResultDisplay({ image }: ResultDisplayProps) {
+  useEffect(() => {
+    const stored = localStorage.getItem("generatedImage");
+    if (stored) setImage(stored);
+  }, []);
+
+  if (!image)
+    return (
+      <p className="text-center mt-20 text-red-500">
+        No result found. Go back and take the quiz first!
+      </p>
+    );
+
   return (
-    <div className="flex flex-col items-center">
-      <Image
+    <div className="flex flex-col items-center gap-4 mt-8">
+      <h1 className="text-3xl font-bold">🌟 Your Ultimate Fantasy 🌟</h1>
+      <img
         src={image}
-        alt="Generated Fantasy"
-        width={512}
-        height={512}
-        className="rounded-xl shadow-lg"
+        alt="AI generated fantasy"
+        className="max-w-full rounded-xl shadow-lg"
       />
-      <p className="mt-4 text-lg font-semibold text-center">Here’s your fantasy world ✨</p>
     </div>
   );
 }
