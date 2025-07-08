@@ -1,36 +1,42 @@
-'use client';
+"use client";
 
-import React, { useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 
-// Dynamically import react-webcam (avoids server-side issues)
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+// Dynamically import react-webcam (client-only)
+const Webcam = dynamic(() => import("react-webcam"), { ssr: false });
+// TypeScript fix: tell TS this component accepts any props
+const WebcamAny = Webcam as unknown as React.ComponentType<Record<string, unknown>>;
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // Temporarily use `any` to bypass TS errors
+  const webcamRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const capture = useCallback(() => {
+  const handleCapture = () => {
+    // @ts-ignore – we're confident webcamRef works at runtime
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
-      const queryString = searchParams.toString();
-      router.push(`/result?${queryString}&selfie=${encodeURIComponent(imageSrc)}`);
+      const query = new URLSearchParams(searchParams as any);
+      query.set("selfie", imageSrc);
+      router.push(`/result?${query.toString()}`);
+    } else {
+      alert("Selfie failed. Please allow camera access and try again.");
     }
-  }, [searchParams, router]);
+  };
 
   return (
     <div className="flex flex-col items-center space-y-4">
-      <Webcam
+      <WebcamAny
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         className="rounded-lg shadow-lg w-full max-w-sm"
       />
       <button
-        onClick={capture}
-        className="bg-black text-white px-6 py-2 rounded-full font-bold hover:bg-gray-800 transition"
+        onClick={handleCapture}
+        className="mt-4 px-6 py-2 rounded-xl bg-black text-white text-lg font-semibold hover:bg-gray-800"
       >
         Generate My Fantasy Image
       </button>
