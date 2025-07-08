@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam>(null); // ✅ Fixed typing here
+  const webcamRef = useRef<React.RefObject<HTMLVideoElement>>(null); // or just 'any' for now
   const [cameraReady, setCameraReady] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -21,7 +21,7 @@ export default function CustomWebcam() {
       return;
     }
 
-    const imageSrc = webcamRef.current.getScreenshot();
+    const imageSrc = (webcamRef.current as any)?.getScreenshot?.();
 
     if (!imageSrc) {
       alert("Could not capture image.");
@@ -38,7 +38,7 @@ export default function CustomWebcam() {
   return (
     <div className="flex flex-col items-center gap-4">
       <Webcam
-        ref={webcamRef}
+        ref={webcamRef as any}
         audio={false}
         screenshotFormat="image/jpeg"
         onUserMedia={handleUserMedia}
