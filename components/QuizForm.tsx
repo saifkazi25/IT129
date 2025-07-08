@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 export default function QuizForm() {
   const [answers, setAnswers] = useState(Array(7).fill(''));
   const [selfie, setSelfie] = useState<string | null>(null);
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<typeof Webcam | null>(null);
   const [error, setError] = useState('');
   const router = useRouter();
 
@@ -28,14 +28,14 @@ export default function QuizForm() {
   };
 
   const captureSelfie = () => {
-    const img = webcamRef.current?.getScreenshot();
-    if (img) setSelfie(img);
+    const imageSrc = webcamRef.current?.getScreenshot?.();
+    if (imageSrc) setSelfie(imageSrc);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selfie) {
-      alert('Please take a selfie first!');
+      alert('Please take a selfie!');
       return;
     }
 
@@ -50,8 +50,8 @@ export default function QuizForm() {
       const data = await res.json();
       router.push(`/result?image=${encodeURIComponent(data.image)}`);
     } catch (err) {
-      console.error('Error:', err);
-      setError('Something went wrong. Try again.');
+      console.error(err);
+      setError('Something went wrong. Please try again.');
     }
   };
 
@@ -96,5 +96,3 @@ export default function QuizForm() {
     </form>
   );
 }
-
-
