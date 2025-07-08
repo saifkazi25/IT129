@@ -4,11 +4,13 @@ import React, { useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// Dynamically import Webcam with SSR off
+// Dynamically import Webcam
 const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+// Import type separately
+import type WebcamType from 'react-webcam';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<import('react-webcam').default>(null);
+  const webcamRef = useRef<WebcamType | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -37,4 +39,3 @@ export default function WebcamCapture() {
     </div>
   );
 }
-
