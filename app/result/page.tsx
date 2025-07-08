@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ResultDisplay from '@/components/ResultDisplay';
 
-export default function ResultPage() {
+export default function ResultPageContent() {
   const searchParams = useSearchParams();
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,4 +53,3 @@ export default function ResultPage() {
     </main>
   );
 }
-
