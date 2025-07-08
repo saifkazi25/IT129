@@ -3,8 +3,7 @@ import ResultDisplay from "@/components/ResultDisplay";
 
 export default function ResultPage() {
   return (
-    <Suspense fallback={<p className="text-center mt-20">Loading...</p>}>
-      {/* ⚡ Client component wrapped in Suspense fixes prerender error */}
+    <Suspense fallback={<div className="p-6 text-center">Loading your fantasy...</div>}>
       <ResultDisplay />
     </Suspense>
   );
