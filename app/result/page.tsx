@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import ResultDisplay from "@/components/ResultDisplay";
+import ResultContent from "./ResultContent";
 
 export default function ResultPage() {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading your fantasy...</div>}>
-      <ResultDisplay />
+      <ResultContent />
     </Suspense>
   );
 }
