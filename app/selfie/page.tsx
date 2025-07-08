@@ -1,18 +1,15 @@
-import dynamic from "next/dynamic";
-import { Suspense } from "react";
+'use client';
 
-// Dynamically import the webcam component (client-side only)
-const WebcamCapture = dynamic(() => import("@/components/CustomWebcam"), {
-  ssr: false,
-});
+import React, { Suspense } from 'react';
+import CustomWebcam from '@/components/CustomWebcam';
 
 export default function SelfiePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-6">📸 Take a Selfie</h1>
-      <Suspense fallback={<p>Loading camera...</p>}>
-        <WebcamCapture />
-      </Suspense>
-    </main>
+    <Suspense fallback={<div className="p-10 text-center text-gray-400">Loading camera...</div>}>
+      <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-white text-black">
+        <h1 className="text-2xl font-bold mb-4 text-center">Smile! Let’s capture your fantasy face 😎</h1>
+        <CustomWebcam />
+      </main>
+    </Suspense>
   );
 }
