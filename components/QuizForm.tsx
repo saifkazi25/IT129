@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Webcam, { type WebcamProps } from 'react-webcam';
+import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
-
-type ReactWebcam = React.Component<WebcamProps>;
 
 export default function QuizForm() {
   const [answers, setAnswers] = useState(Array(7).fill(''));
   const [selfie, setSelfie] = useState<string | null>(null);
-  const webcamRef = useRef<ReactWebcam | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const [error, setError] = useState('');
   const router = useRouter();
 
@@ -45,21 +43,15 @@ export default function QuizForm() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers,
-          image: selfie,
-        }),
+        body: JSON.stringify({ answers, image: selfie }),
       });
 
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
-      }
-
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       router.push(`/result?image=${encodeURIComponent(data.image)}`);
     } catch (err) {
-      console.error('Error generating image:', err);
-      setError('Something went wrong. Please try again.');
+      console.error('Error:', err);
+      setError('Something went wrong. Try again.');
     }
   };
 
@@ -84,12 +76,19 @@ export default function QuizForm() {
           screenshotFormat="image/jpeg"
           className="rounded w-full h-auto"
         />
-        <button type="button" onClick={captureSelfie} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
+        <button
+          type="button"
+          onClick={captureSelfie}
+          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+        >
           📸 Take Selfie
         </button>
       </div>
 
-      <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">
+      <button
+        type="submit"
+        className="w-full bg-green-600 text-white py-2 rounded"
+      >
         🔮 Generate Fantasy
       </button>
 
@@ -97,4 +96,5 @@ export default function QuizForm() {
     </form>
   );
 }
+
 
