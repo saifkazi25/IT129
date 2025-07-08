@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // 👈 safer for now
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -23,7 +23,7 @@ export default function CustomWebcam() {
         alert("Selfie failed. Couldn't capture image. Try again.");
       }
     } else {
-      alert("Camera is not ready. Please wait or refresh the page.");
+      alert("Camera is not ready. Please allow access or refresh the page.");
     }
   };
 
