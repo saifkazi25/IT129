@@ -2,12 +2,13 @@
 
 import React, { useRef, useCallback, useState } from 'react';
 import Webcam from 'react-webcam';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // ✅ FIXED: removed type issue
   const [cameraReady, setCameraReady] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleUserMedia = () => {
     console.log("✅ Webcam ready");
@@ -16,7 +17,7 @@ export default function CustomWebcam() {
 
   const capture = useCallback(() => {
     if (!cameraReady || !webcamRef.current) {
-      alert("Webcam not ready");
+      console.warn("❌ Webcam not ready or null");
       return;
     }
 
@@ -27,10 +28,12 @@ export default function CustomWebcam() {
       return;
     }
 
-    // Store image in localStorage
-    localStorage.setItem("selfie", imageSrc);
-    router.push("/result");
-  }, [cameraReady, router]);
+    console.log("📸 Image captured:", imageSrc.slice(0, 50)); // preview
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('image', imageSrc);
+    router.push(`/result?${params.toString()}`);
+  }, [cameraReady, searchParams, router]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -58,3 +61,4 @@ export default function CustomWebcam() {
     </div>
   );
 }
+
