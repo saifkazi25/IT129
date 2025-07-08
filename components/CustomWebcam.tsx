@@ -1,34 +1,28 @@
 'use client';
 
 import React, { useRef } from 'react';
-import Webcam from 'react-webcam';
+import Webcam, { WebcamProps } from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<Webcam | null>(null); // ✅ FIXED
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const capture = () => {
-    console.log("📸 Attempting to capture screenshot...");
-    
     const imageSrc = webcamRef.current?.getScreenshot();
-    console.log("📸 Result:", imageSrc);
+
+    console.log('Captured image:', imageSrc);
 
     if (!imageSrc) {
       alert("Couldn't capture image. Try again.");
       return;
     }
 
-    if (!searchParams) {
-      alert("Search parameters not found.");
-      return;
-    }
-
     const params = new URLSearchParams(searchParams.toString());
     params.set('image', imageSrc);
 
-    console.log("➡️ Params before push:", params.toString());
+    console.log('Redirecting with params:', params.toString());
 
     router.push(`/result?${params.toString()}`);
   };
