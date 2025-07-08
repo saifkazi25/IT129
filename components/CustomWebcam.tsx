@@ -17,13 +17,24 @@ export default function CustomWebcam() {
       return;
     }
 
-    if (!searchParams) {
-      alert("Search parameters not found.");
+    // Fallback: if searchParams is null (which happens sometimes during hydration)
+    const rawParams = searchParams?.toString() || '';
+    const params = new URLSearchParams(rawParams);
+
+    // Make sure quiz answers (q0–q6) are present
+    const hasAllAnswers = Array.from({ length: 7 }).every((_, i) =>
+      params.has(`q${i}`)
+    );
+
+    if (!hasAllAnswers) {
+      alert("Please complete the quiz first.");
       return;
     }
 
-    const params = new URLSearchParams(searchParams.toString());
+    // Add the selfie image to the params
     params.set('image', imageSrc);
+
+    // Go to the result page
     router.push(`/result?${params.toString()}`);
   };
 
