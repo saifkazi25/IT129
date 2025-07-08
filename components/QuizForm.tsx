@@ -6,10 +6,11 @@ import Webcam from "react-webcam";
 
 export default function QuizForm() {
   const router = useRouter();
-  const [answers, setAnswers] = useState(Array(7).fill(""));
+  const [answers, setAnswers] = useState<string[]>([
+    "", "", "", "", "", "", ""
+  ]);
   const [selfie, setSelfie] = useState<string | null>(null);
-
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ ✅ CORRECT TYPE
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
 
   const capture = () => {
     const img = webcamRef.current?.getScreenshot();
@@ -18,7 +19,7 @@ export default function QuizForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selfie) return alert("Please take a selfie first!");
+    if (!selfie) return alert("Please take a selfie!");
 
     const res = await fetch("/api/generate", {
       method: "POST",
@@ -26,67 +27,65 @@ export default function QuizForm() {
       body: JSON.stringify({ answers, image: selfie }),
     });
 
-    if (!res.ok) {
-      alert("Something went wrong. Try again.");
-      return;
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem("generatedImage", data.image);
+      router.push("/result");
+    } else {
+      alert("Failed to generate image.");
     }
-
-    const { image } = await res.json();
-    localStorage.setItem("generatedImage", image);
-    router.push("/result");
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-6 max-w-xl mx-auto p-6"
-    >
-      {answers.map((val, i) => (
-        <input
-          key={i}
-          className="border p-2 rounded"
-          placeholder={`Question ${i + 1}`}
-          value={val}
-          onChange={(e) =>
-            setAnswers((prev) => {
-              const next = [...prev];
-              next[i] = e.target.value;
-              return next;
-            })
-          }
-          required
-        />
-      ))}
+    <div className="min-h-screen p-6 bg-white text-black">
+      <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-6">
+        <h1 className="text-3xl font-bold text-center">🌌 Enter Your Fantasy</h1>
 
-      {!selfie ? (
-        <>
-          <Webcam
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            className="rounded border"
+        {answers.map((answer, i) => (
+          <input
+            key={i}
+            className="w-full border rounded p-2"
+            placeholder={`Answer for Question ${i + 1}`}
+            value={answer}
+            onChange={(e) => {
+              const newAnswers = [...answers];
+              newAnswers[i] = e.target.value;
+              setAnswers(newAnswers);
+            }}
+            required
           />
-          <button
-            type="button"
-            onClick={capture}
-            className="bg-blue-600 text-white p-2 rounded"
-          >
-            Capture Selfie
-          </button>
-        </>
-      ) : (
-        <img
-          src={selfie}
-          alt="Your Selfie"
-          className="w-48 h-48 object-cover rounded self-center"
-        />
-      )}
+        ))}
 
-      <button
-        type="submit"
-        className="bg-green-600 text-white p-3 rounded font-bold"
-      >
-        See My Fantasy!
-      </button>
-    </form>
+        {!selfie ? (
+          <>
+            <Webcam
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              className="rounded border w-full max-w-sm mx-auto"
+            />
+            <button
+              type="button"
+              onClick={capture}
+              className="block mx-auto bg-blue-600 text-white px-4 py-2 rounded mt-4"
+            >
+              Capture Selfie
+            </button>
+          </>
+        ) : (
+          <img
+            src={selfie}
+            alt="Selfie"
+            className="w-48 h-48 rounded object-cover mx-auto"
+          />
+        )}
+
+        <button
+          type="submit"
+          className="w-full bg-green-600 text-white font-bold py-3 rounded"
+        >
+          Generate My Dream
+        </button>
+      </form>
+    </div>
   );
 }
