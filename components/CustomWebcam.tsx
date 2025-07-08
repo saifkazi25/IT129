@@ -2,11 +2,10 @@
 
 import React, { useRef } from 'react';
 import Webcam from 'react-webcam';
-import type { Webcam as WebcamType } from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<WebcamType>(null);
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -21,7 +20,7 @@ export default function CustomWebcam() {
     const rawParams = searchParams?.toString() || '';
     const params = new URLSearchParams(rawParams);
 
-    // ✅ Make sure all quiz answers (q0 to q6) are present
+    // Validate that all quiz params exist
     const hasAllAnswers = Array.from({ length: 7 }).every((_, i) =>
       params.has(`q${i}`)
     );
