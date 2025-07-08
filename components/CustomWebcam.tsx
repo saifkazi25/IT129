@@ -1,32 +1,35 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// ✅ Correct type: use `Webcam` type via `typeof` for useRef
 export default function CustomWebcam() {
-  const webcamRef = useRef<typeof Webcam | null>(null); // ✅ FINAL FIX
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
+  const capture = useCallback(() => {
+    if (!webcamRef.current) {
+      console.log("Webcam ref is null");
+      alert("Webcam not ready yet.");
+      return;
+    }
 
-    console.log('Captured image:', imageSrc);
+    const screenshot = webcamRef.current.getScreenshot();
+    console.log("Captured image:", screenshot);
 
-    if (!imageSrc) {
-      alert("Couldn't capture image. Try again.");
+    if (!screenshot) {
+      alert("Could not capture selfie. Please try again.");
       return;
     }
 
     const params = new URLSearchParams(searchParams.toString());
-    params.set('image', imageSrc);
+    params.set('image', screenshot);
 
-    console.log('Redirecting with params:', params.toString());
-
+    console.log("Redirecting with params:", params.toString());
     router.push(`/result?${params.toString()}`);
-  };
+  }, [webcamRef, router, searchParams]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -37,6 +40,11 @@ export default function CustomWebcam() {
         width={320}
         height={240}
         className="rounded-xl shadow"
+        videoConstraints={{
+          width: 320,
+          height: 240,
+          facingMode: 'user',
+        }}
       />
       <button
         onClick={capture}
@@ -47,4 +55,3 @@ export default function CustomWebcam() {
     </div>
   );
 }
-
