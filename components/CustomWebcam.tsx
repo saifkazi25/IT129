@@ -1,38 +1,32 @@
 'use client';
 
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function CustomWebcam() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
-  const [cameraReady, setCameraReady] = useState(false);
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const capture = useCallback(() => {
-    if (!cameraReady) {
-      alert("Camera not ready. Please wait a few seconds.");
+    if (!webcamRef.current) {
+      console.error("❌ Webcam ref not ready");
       return;
     }
 
-    const tryCapture = () => {
-      const imageSrc = webcamRef.current?.getScreenshot();
+    const imageSrc = webcamRef.current.getScreenshot();
+    console.log("📸 Image captured:", imageSrc);
 
-      if (!imageSrc) {
-        console.warn("Screenshot not ready, retrying...");
-        setTimeout(tryCapture, 300);
-        return;
-      }
+    if (!imageSrc) {
+      alert("❌ Couldn't capture image. Try again.");
+      return;
+    }
 
-      console.log("Image captured:", imageSrc.substring(0, 100));
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('image', imageSrc);
-      router.push(`/result?${params.toString()}`);
-    };
-
-    tryCapture();
-  }, [cameraReady, searchParams, router]);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('image', imageSrc);
+    router.push(`/result?${params.toString()}`);
+  }, [searchParams, router]);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -43,18 +37,8 @@ export default function CustomWebcam() {
         width={320}
         height={240}
         className="rounded-xl shadow"
-        onUserMedia={() => {
-          console.log("Webcam ready");
-          setCameraReady(true);
-        }}
-        onUserMediaError={(err) => {
-          console.error("Webcam error:", err);
-          alert("Please allow camera access.");
-        }}
         videoConstraints={{
-          width: 640,
-          height: 480,
-          facingMode: 'user',
+          facingMode: "user"
         }}
       />
       <button
