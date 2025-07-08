@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Webcam from "react-webcam";
 
@@ -9,14 +9,13 @@ export default function QuizForm() {
   const [answers, setAnswers] = useState(Array(7).fill(""));
   const [selfie, setSelfie] = useState<string | null>(null);
 
-  // ⬇️ capture selfie from webcam
-  const webcamRef = React.useRef<Webcam>(null);
+  const webcamRef = useRef<Webcam>(null);
+
   const capture = () => {
     const img = webcamRef.current?.getScreenshot();
     if (img) setSelfie(img);
   };
 
-  // ⬇️ submit quiz
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selfie) return alert("Please take a selfie first!");
@@ -33,7 +32,6 @@ export default function QuizForm() {
     }
 
     const { image } = await res.json();
-    // store for the result page
     localStorage.setItem("generatedImage", image);
     router.push("/result");
   };
@@ -60,7 +58,6 @@ export default function QuizForm() {
         />
       ))}
 
-      {/* Webcam + capture button ----------------------------------------- */}
       {!selfie ? (
         <>
           <Webcam
@@ -93,3 +90,4 @@ export default function QuizForm() {
     </form>
   );
 }
+
