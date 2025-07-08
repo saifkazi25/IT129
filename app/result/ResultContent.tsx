@@ -1,57 +1,41 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+'use client';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function ResultContent() {
   const searchParams = useSearchParams();
-  const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchImage = async () => {
+      if (!searchParams) return;
+
       const qParams = Array.from({ length: 7 }, (_, i) => searchParams.get(`q${i}`));
-      const selfie = searchParams.get("image");
+      const selfie = searchParams.get('image');
 
-      if (qParams.some((q) => !q) || !selfie) return;
+      if (qParams.some(q => !q) || !selfie) return;
 
-      setLoading(true);
-      try {
-        const res = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            questions: qParams,
-            selfie,
-          }),
-        });
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: qParams, image: selfie }),
+      });
 
-        const data = await res.json();
-        setImage(data.image);
-      } catch (err) {
-        console.error("Error generating image:", err);
-      } finally {
-        setLoading(false);
-      }
+      const data = await res.json();
+      setImageUrl(data.image);
     };
 
     fetchImage();
   }, [searchParams]);
 
   return (
-    <div className="p-6 min-h-screen bg-white text-black text-center">
-      <h1 className="text-2xl font-bold mb-4">✨ Your Fantasy Image</h1>
-      {loading && <p>Generating your dream world… please wait.</p>}
-      {!loading && image && (
-        <div className="p-4">
-          <img
-            src={image}
-            alt="Generated Fantasy"
-            className="mx-auto rounded shadow-lg max-w-full h-auto"
-          />
-          <p className="mt-4 text-lg font-semibold">Here is your fantasy world ✨</p>
-        </div>
+    <div className="flex flex-col items-center justify-center p-4">
+      <h2 className="text-xl mb-4">🌀 Generating your dream world...</h2>
+      {imageUrl ? (
+        <img src={imageUrl} alt="Your fantasy" className="max-w-full rounded shadow-md" />
+      ) : (
+        <p>🧠 Please wait while we generate your image...</p>
       )}
     </div>
   );
 }
-
