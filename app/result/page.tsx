@@ -26,8 +26,8 @@ export default function ResultPage() {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.output) {
-          setOutputUrl(data.output);
+        if (data.output && Array.isArray(data.output)) {
+          setOutputUrl(data.output[0]); // ✅ Pick the first image URL
         } else {
           setError(data.error || 'Image generation failed.');
         }
