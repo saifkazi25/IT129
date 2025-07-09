@@ -37,8 +37,8 @@ export async function POST(req: Request) {
     const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}.`;
     console.log('🧠 Prompt to SDXL:', prompt);
 
-    // STEP 1: Generate image from SDXL
-    const sdxlOutput: string[] = await runWithRetry(() =>
+    // ✅ FIXED: add type argument to runWithRetry to let TypeScript know the return type
+    const sdxlOutput = await runWithRetry<string[]>(() =>
       replicate.run("stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", {
         input: {
           prompt,
@@ -60,7 +60,6 @@ export async function POST(req: Request) {
 
     console.log("🧪 SDXL image generated, sending to FaceFusion...");
 
-    // STEP 2: Merge user selfie using FaceFusion
     const finalOutput = await runWithRetry(() =>
       replicate.run("lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7", {
         input: {
@@ -76,4 +75,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || "Failed to generate image." }, { status: 500 });
   }
 }
-
