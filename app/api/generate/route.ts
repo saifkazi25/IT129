@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
+// Initialize Replicate client
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
+// Reusable retry wrapper
 async function runWithRetry<T>(
   fn: () => Promise<T>,
   retries = 10,
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
     console.log('🧠 Prompt to SDXL:', prompt);
 
     // STEP 1: Generate fantasy image using SDXL
-    const sdxlResult = await runWithRetry(() =>
+    const sdxlPrediction = await runWithRetry(() =>
       replicate.run(
         "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
         {
@@ -55,19 +57,23 @@ export async function POST(req: Request) {
             guidance_scale: 7.5,
           },
         }
-      ) as Promise<{ output: string[] }>
+      )
     );
 
-    const templateImage = sdxlResult.output?.[0];
-    if (!templateImage) {
-      throw new Error("Failed to generate fantasy image.");
+    // SDXL returns an object or array — safely extract URL
+    const templateImage = Array.isArray(sdxlPrediction)
+      ? sdxlPrediction[0]
+      : (sdxlPrediction as any)?.output?.[0];
+
+    if (!templateImage || typeof templateImage !== 'string') {
+      throw new Error('Failed to generate fantasy image.');
     }
 
     console.log('🧪 SDXL image ready; pausing briefly before FaceFusion…');
-    await new Promise((res) => setTimeout(res, 8000)); // pause before second request
+    await new Promise((res) => setTimeout(res, 5000)); // optional 5-second wait
 
     // STEP 2: Merge with user selfie using FaceFusion
-    const faceFusionResult = await runWithRetry(() =>
+    const finalOutput = await runWithRetry(() =>
       replicate.run(
         "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
         {
@@ -76,12 +82,17 @@ export async function POST(req: Request) {
             user_image: userImage,
           },
         }
-      ) as Promise<{ output: string[] }>
+      )
     );
 
-    return NextResponse.json({ output: faceFusionResult.output });
+    const facefusionImage = Array.isArray(finalOutput)
+      ? finalOutput[0]
+      : (finalOutput as any)?.output?.[0];
+
+    return NextResponse.json({ output: facefusionImage });
   } catch (err: any) {
     console.error('❌ Final error:', err);
     return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
   }
 }
+
