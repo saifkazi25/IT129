@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     console.log('📨 Prompt to Replicate:', prompt);
 
     const output = await replicate.run(
-      "lucataco/modelscope-facefusion:14b80471165f13b3e73b3aecee30573583b9a3293d025d3b25623a54cbe7e3e6",
+      "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
       {
         input: {
           template: "stabilityai/stable-diffusion-xl",
