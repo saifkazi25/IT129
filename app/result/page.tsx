@@ -2,22 +2,21 @@
 import { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const answersStr = localStorage.getItem('quizAnswers');
-    const selfieImage = localStorage.getItem('selfieImage');
+    const answersStr = localStorage.getItem('quizAnswers') || '[]';
+    const selfieImage = localStorage.getItem('selfieImage') || '';
 
-    if (!answersStr || !selfieImage) {
+    const answers = JSON.parse(answersStr);
+
+    if (!selfieImage || !Array.isArray(answers) || answers.length !== 7) {
       setError('Missing data — please redo quiz & selfie.');
       setLoading(false);
       return;
     }
-
-    const answers = JSON.parse(answersStr);
 
     fetch('/api/generate', {
       method: 'POST',
@@ -27,7 +26,7 @@ export default function ResultPage() {
       .then(res => res.json())
       .then(data => {
         if (data.output && Array.isArray(data.output)) {
-          setOutputUrl(data.output[0]); // ✅ Pick the first image URL
+          setOutputUrl(data.output[0]);
         } else {
           setError(data.error || 'Image generation failed.');
         }
