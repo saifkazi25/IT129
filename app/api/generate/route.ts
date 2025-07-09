@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
-// Util to retry on rate limits
-async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 5000): Promise<T> {
+// Initialize Replicate client
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
+});
+
+// Reusable retry wrapper
+async function runWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 3000
+): Promise<T> {
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       return await fn();
@@ -11,25 +20,21 @@ async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 5000):
         const retryAfter = error?.response?.headers?.get('retry-after');
         const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay;
         console.warn(`⚠️ Rate limited. Retrying in ${waitTime / 1000}s...`);
-        await new Promise(res => setTimeout(res, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       } else {
         throw error;
       }
     }
   }
-  throw new Error("❌ All retries failed.");
+  throw new Error('❌ Failed after retries');
 }
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { answers, image: userImage } = body;
 
-    if (!userImage || !answers || !Array.isArray(answers) || answers.length !== 7) {
+    if (!userImage || !answers || answers.length !== 7) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
@@ -37,7 +42,7 @@ export async function POST(req: Request) {
     console.log('🧠 Prompt to SDXL:', prompt);
 
     // STEP 1: Generate fantasy image using SDXL
-    const sdxlOutput = await runWithRetry(() =>
+    const sdxlOutput = await runWithRetry<string[]>(() =>
       replicate.run(
         "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
         {
@@ -55,7 +60,7 @@ export async function POST(req: Request) {
       )
     );
 
-    const templateImage = Array.isArray(sdxlOutput) ? sdxlOutput[0] : null;
+    const templateImage = sdxlOutput?.[0];
     if (!templateImage) {
       throw new Error("Failed to generate fantasy image.");
     }
@@ -63,7 +68,7 @@ export async function POST(req: Request) {
     console.log('🧪 SDXL image generated, sending to FaceFusion...');
 
     // STEP 2: Merge with user selfie using FaceFusion
-    const finalOutput = await runWithRetry(() =>
+    const finalOutput = await runWithRetry<string[]>(() =>
       replicate.run(
         "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
         {
@@ -72,7 +77,9 @@ export async function POST(req: Request) {
             user_image: userImage,
           },
         }
-      )
+      ),
+      5,     // Retry up to 5 times
+      8000   // Wait 8 seconds between retries
     );
 
     return NextResponse.json({ output: finalOutput });
@@ -81,4 +88,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
   }
 }
+
 
