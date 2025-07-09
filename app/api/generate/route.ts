@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     }
 
     console.log('🧪 SDXL image ready; pausing briefly before FaceFusion…');
-    await new Promise((res) => setTimeout(res, 5000)); // optional 5-second wait
+    await new Promise((res) => setTimeout(res, 8000)); // 8-second pause
 
     // STEP 2: Merge with user selfie using FaceFusion
     const finalOutput = await runWithRetry<string[]>(() =>
@@ -79,8 +79,8 @@ export async function POST(req: Request) {
           },
         }
       ),
-      10,    // 10 retries
-      7000   // 7 seconds between retries
+      10,   // retry up to 10 times
+      7000  // wait 7 seconds between retries
     );
 
     return NextResponse.json({ output: finalOutput });
@@ -89,3 +89,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
   }
 }
+
