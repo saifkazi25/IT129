@@ -5,25 +5,25 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-const callWithRetry = async <T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 5000): Promise<T> {
+  let attempt = 0;
+  while (attempt < retries) {
     try {
       return await fn();
     } catch (err: any) {
-      if (
-        err?.status === 429 &&
-        attempt < maxRetries
-      ) {
-        const waitTime = 8000; // 8 seconds
-        console.warn(`🔁 Rate limited, retrying in ${waitTime / 1000}s...`);
-        await new Promise((res) => setTimeout(res, waitTime));
-        continue;
+      if (err?.status === 429 && attempt < retries - 1) {
+        console.warn(`🔁 Rate limit hit. Retrying in ${delayMs / 1000}s...`);
+        await delay(delayMs);
+        attempt++;
+      } else {
+        throw err;
       }
-      throw err;
     }
   }
-  throw new Error("Exceeded max retries");
-};
+  throw new Error("Max retries reached");
+}
 
 export async function POST(req: Request) {
   try {
@@ -37,48 +37,43 @@ export async function POST(req: Request) {
     const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}.`;
     console.log('🧠 Prompt to SDXL:', prompt);
 
-    // Step 1: Generate fantasy image
-    const sdxlOutput = await callWithRetry(() =>
-      replicate.run(
-        'stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc',
-        {
-          input: {
-            prompt,
-            width: 512,
-            height: 512,
-            refine: 'expert_ensemble_refiner',
-            scheduler: 'K_EULER',
-            num_outputs: 1,
-            num_inference_steps: 30,
-            guidance_scale: 7.5,
-          },
-        }
-      )
+    // STEP 1: Generate image from SDXL
+    const sdxlOutput: string[] = await runWithRetry(() =>
+      replicate.run("stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", {
+        input: {
+          prompt,
+          width: 512,
+          height: 512,
+          refine: "expert_ensemble_refiner",
+          scheduler: "K_EULER",
+          num_outputs: 1,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+        },
+      })
     );
 
     const templateImage = sdxlOutput?.[0];
     if (!templateImage) {
-      throw new Error("Failed to generate fantasy image.");
+      throw new Error("Fantasy image not generated.");
     }
 
-    console.log('🧪 SDXL image generated, sending to FaceFusion...');
+    console.log("🧪 SDXL image generated, sending to FaceFusion...");
 
-    // Step 2: Merge with user selfie using FaceFusion
-    const finalOutput = await callWithRetry(() =>
-      replicate.run(
-        "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
-        {
-          input: {
-            template_image: templateImage,
-            user_image: userImage,
-          },
-        }
-      )
+    // STEP 2: Merge user selfie using FaceFusion
+    const finalOutput = await runWithRetry(() =>
+      replicate.run("lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7", {
+        input: {
+          template_image: templateImage,
+          user_image: userImage,
+        },
+      })
     );
 
     return NextResponse.json({ output: finalOutput });
   } catch (err: any) {
-    console.error('❌ Final error:', err);
-    return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
+    console.error("❌ Final error:", err);
+    return NextResponse.json({ error: err.message || "Failed to generate image." }, { status: 500 });
   }
 }
+
