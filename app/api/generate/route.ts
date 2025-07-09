@@ -5,58 +5,54 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-async function runReplicate(prompt: string, image: string) {
-  const maxRetries = 3;
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    try {
-      const output = await replicate.run(
-        "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
-        {
-          input: {
-            template: "stabilityai/stable-diffusion-xl",
-            target_image: image, // this is the selfie
-            prompt,
-            num_inference_steps: 30,
-            guidance_scale: 7.5,
-          },
-        }
-      );
-      return output;
-    } catch (err: any) {
-      const is429 = err?.response?.status === 429;
-      const retryAfter = parseInt(err?.response?.headers?.get("retry-after") || "10", 10);
-      if (is429) {
-        console.warn(`⏳ Rate limit hit. Waiting ${retryAfter}s before retry...`);
-        await new Promise((res) => setTimeout(res, retryAfter * 1000));
-        attempt++;
-        continue;
-      }
-      throw err; // not a rate limit issue
-    }
-  }
-
-  throw new Error("⚠️ Too many retry attempts.");
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { answers, image } = body;
+    const { answers, image: userImage } = body;
 
-    console.log('📦 Received:', { answers, imageLength: image?.length });
-
-    if (!image || !answers || answers.length !== 7) {
+    if (!userImage || !answers || answers.length !== 7) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
-    const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}. Merge with selfie.`;
-    console.log('📨 Prompt to Replicate:', prompt);
+    const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}.`;
+    console.log('🧠 Prompt to SDXL:', prompt);
 
-    const output = await runReplicate(prompt, image);
-    console.log('✅ Output generated successfully.');
-    return NextResponse.json({ output });
+    // STEP 1: Generate fantasy image using SDXL
+    const sdxlOutput = await replicate.run(
+      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+      {
+        input: {
+          prompt: prompt,
+          width: 512,
+          height: 512,
+          refine: "expert_ensemble_refiner",
+          scheduler: "K_EULER",
+          num_outputs: 1,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+        },
+      }
+    );
+
+    const templateImage = sdxlOutput?.[0];
+    if (!templateImage) {
+      throw new Error("Failed to generate fantasy image.");
+    }
+
+    console.log('🧪 SDXL image generated, sending to FaceFusion...');
+
+    // STEP 2: Merge with user selfie using FaceFusion
+    const finalOutput = await replicate.run(
+      "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
+      {
+        input: {
+          template_image: templateImage,
+          user_image: userImage,
+        },
+      }
+    );
+
+    return NextResponse.json({ output: finalOutput });
   } catch (err: any) {
     console.error('❌ Final error:', err);
     return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
