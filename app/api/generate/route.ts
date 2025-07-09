@@ -14,26 +14,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
-    const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}. Merge with selfie.`;
-    console.log('📨 Prompt to Replicate:', prompt);
+    // Generate fantasy text for logging
+    const fantasyText = answers.join(', ');
+    console.log('📨 Fantasy prompt:', fantasyText);
+
+    // Use Replicate's modelscope-facefusion which needs:
+    // - target_image: your selfie
+    // - template_image: some image to blend with (we'll use a fantasy sample)
+
+    const fantasyTemplate = "https://replicate.delivery/pbxt/WL2kqzcoFYyo53XgC7vVlZarRn1YJZyEqJxErGBF0UdK1lQA/fantasy_template.jpg";
 
     const output = await replicate.run(
       "lucataco/modelscope-facefusion:14b80471165f13b3e73b3aecee30573583b9a3293d025d3b25623a54cbe7e3e6",
       {
         input: {
-          template: "stabilityai/stable-diffusion-xl",
           target_image: image,
-          prompt: prompt,
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
+          template_image: fantasyTemplate,
         },
       }
     );
 
-    console.log('✅ Replicate image generated:', output);
+    console.log('✅ Replicate output:', output);
     return NextResponse.json({ output });
   } catch (err: any) {
-    console.error('❌ Replicate error:', err);
+    console.error('❌ Replicate API error:', err);
     return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
   }
 }
