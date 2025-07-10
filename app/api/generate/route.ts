@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     // Step 2: Merge with selfie using FaceFusion
     const faceFusionResult = await runWithRetry(() =>
       replicate.run(
-        "lucataco/modelscope-facefusion:2b86f64b07fc066509300001cf7e060d45a19e538d6aa30a02a4f17445e17df5",
+        "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
         {
           input: {
             source_image: image,
