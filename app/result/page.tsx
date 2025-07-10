@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function ResultPage() {
   const [fantasyImage, setFantasyImage] = useState<string | null>(null);
-  const [finalImage, setFinalImage] = useState<string | null>(null);
+  const [mergedImage, setMergedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -37,9 +37,11 @@ export default function ResultPage() {
 
         const data = await response.json();
 
-        if (response.ok && data.result && data.fantasyImage) {
+        if (response.ok && data.fantasyImage) {
           setFantasyImage(data.fantasyImage);
-          setFinalImage(data.result);
+          if (data.result) {
+            setMergedImage(data.result);
+          }
         } else {
           setError("Image generation failed.");
         }
@@ -73,24 +75,26 @@ export default function ResultPage() {
       )}
 
       {!loading && fantasyImage && (
-        <div className="mb-6 text-center">
-          <p className="font-semibold mb-2">🎨 Fantasy Background</p>
-          <img
-            src={fantasyImage}
-            alt="Fantasy World"
-            className="w-full max-w-md rounded shadow-lg"
-          />
-        </div>
-      )}
+        <div className="flex flex-col items-center gap-6">
+          <div>
+            <h2 className="text-xl font-semibold mb-2">🎨 Fantasy World</h2>
+            <img
+              src={fantasyImage}
+              alt="Fantasy Background"
+              className="w-full max-w-md rounded-lg shadow-md"
+            />
+          </div>
 
-      {!loading && finalImage && (
-        <div className="text-center">
-          <p className="font-semibold mb-2">🧬 Merged with Your Face</p>
-          <img
-            src={finalImage}
-            alt="Fantasy You"
-            className="w-full max-w-md rounded shadow-lg"
-          />
+          {mergedImage && (
+            <div>
+              <h2 className="text-xl font-semibold mb-2">🧞 You in that World</h2>
+              <img
+                src={mergedImage}
+                alt="Merged Fantasy Image"
+                className="w-full max-w-md rounded-lg shadow-md"
+              />
+            </div>
+          )}
         </div>
       )}
     </main>
