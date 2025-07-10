@@ -5,7 +5,7 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-// Smarter retry logic
+// Smarter retry logic with correct output parsing
 async function runWithRetry<T>(
   fn: () => Promise<T>,
   retries = 10,
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     console.log('🧠 Prompt to SDXL:', prompt);
 
     // SDXL IMAGE GENERATION
-    const sdxlOutput = await runWithRetry<string[]>(() =>
+    const sdxlResult = await runWithRetry(() =>
       replicate.run("stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", {
         input: {
           prompt,
@@ -57,16 +57,18 @@ export async function POST(req: Request) {
       })
     );
 
-    const templateImage = sdxlOutput?.[0];
-    if (!templateImage) {
+    const sdxlOutput = (sdxlResult as any)?.output;
+    if (!sdxlOutput || !Array.isArray(sdxlOutput)) {
       throw new Error("Failed to generate fantasy image.");
     }
+
+    const templateImage = sdxlOutput[0];
 
     console.log('🧪 SDXL image ready; pausing briefly before FaceFusion...');
     await new Promise((res) => setTimeout(res, 5000)); // 5s pause
 
     // FACEFUSION
-    const finalOutput = await runWithRetry<string[]>(() =>
+    const faceFusionResult = await runWithRetry(() =>
       replicate.run("lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7", {
         input: {
           template_image: templateImage,
@@ -74,6 +76,11 @@ export async function POST(req: Request) {
         },
       })
     );
+
+    const finalOutput = (faceFusionResult as any)?.output;
+    if (!finalOutput || !Array.isArray(finalOutput)) {
+      throw new Error("Failed to fuse images.");
+    }
 
     return NextResponse.json({ output: finalOutput });
   } catch (err: any) {
