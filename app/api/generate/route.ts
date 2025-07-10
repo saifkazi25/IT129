@@ -14,17 +14,22 @@ async function runWithRetry<T>(
     try {
       return await fn();
     } catch (error: any) {
-      if (error?.status === 429 && attempt < retries - 1) {
-        const retryAfter = error?.response?.headers?.get('retry-after');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay;
+      const retryAfterHeader = error?.response?.headers?.get('retry-after');
+      const waitTime = retryAfterHeader
+        ? parseInt(retryAfterHeader) * 1000
+        : delay;
+
+      const isRateLimit = error?.status === 429;
+
+      if (isRateLimit && attempt < retries - 1) {
         console.warn(`⚠️ Rate limited. Retrying in ${waitTime / 1000}s...`);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        await new Promise((res) => setTimeout(res, waitTime));
       } else {
         throw error;
       }
     }
   }
-  throw new Error('❌ Failed after retries');
+  throw new Error("❌ Failed after max retries.");
 }
 
 export async function POST(req: Request) {
@@ -39,7 +44,6 @@ export async function POST(req: Request) {
     const prompt = `Create a fantasy world with these elements: ${answers.join(', ')}.`;
     console.log('🧠 Prompt to SDXL:', prompt);
 
-    // STEP 1: SDXL Generation
     const sdxlResult = await runWithRetry(() =>
       replicate.run("stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", {
         input: {
@@ -66,7 +70,6 @@ export async function POST(req: Request) {
     console.log('🧪 SDXL image ready; pausing briefly before FaceFusion...');
     await new Promise((res) => setTimeout(res, 5000));
 
-    // STEP 2: FaceFusion
     const finalOutput = await runWithRetry(() =>
       replicate.run("lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7", {
         input: {
@@ -78,7 +81,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ output: finalOutput });
   } catch (err: any) {
-    console.error('❌ Final error:', err);
-    return NextResponse.json({ error: 'Failed to generate image.' }, { status: 500 });
+    console.error("❌ Final error:", err);
+    return NextResponse.json({ error: "Failed to generate image." }, { status: 500 });
   }
 }
+
