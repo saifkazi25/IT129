@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function ResultPage() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fantasyImage, setFantasyImage] = useState<string | null>(null);
+  const [finalImage, setFinalImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -36,8 +37,9 @@ export default function ResultPage() {
 
         const data = await response.json();
 
-        if (response.ok && data.result) {
-          setImageUrl(data.result);
+        if (response.ok && data.result && data.fantasyImage) {
+          setFantasyImage(data.fantasyImage);
+          setFinalImage(data.result);
         } else {
           setError("Image generation failed.");
         }
@@ -70,14 +72,27 @@ export default function ResultPage() {
         </div>
       )}
 
-      {imageUrl && !loading && (
-        <img
-          src={imageUrl}
-          alt="Your fantasy self"
-          className="w-full max-w-md rounded-lg shadow-lg"
-        />
+      {!loading && fantasyImage && (
+        <div className="mb-6 text-center">
+          <p className="font-semibold mb-2">🎨 Fantasy Background</p>
+          <img
+            src={fantasyImage}
+            alt="Fantasy World"
+            className="w-full max-w-md rounded shadow-lg"
+          />
+        </div>
+      )}
+
+      {!loading && finalImage && (
+        <div className="text-center">
+          <p className="font-semibold mb-2">🧬 Merged with Your Face</p>
+          <img
+            src={finalImage}
+            alt="Fantasy You"
+            className="w-full max-w-md rounded shadow-lg"
+          />
+        </div>
       )}
     </main>
   );
 }
-
