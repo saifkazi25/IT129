@@ -1,53 +1,56 @@
-'use client';
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const questions = [
-  "What season feels most magical to you?",
-  "Pick a city you'd love to explore.",
-  "Choose your character type.",
+  "What kind of landscape do you dream of?",
+  "Which city feels most like home in your dreams?",
+  "What kind of character do you see yourself as?",
   "What outfit are you wearing?",
-  "Pick an element in your scene.",
-  "What feeling do you want to experience?",
-  "Choose a superpower."
+  "What’s the vibe of your dream world?",
+  "What kind of story is unfolding around you?",
+  "Do you have any supernatural powers or abilities?"
 ];
 
-const QuizForm: React.FC = () => {
-  const [answers, setAnswers] = useState(Array(questions.length).fill(''));
+export default function QuizForm() {
+  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(""));
   const router = useRouter();
 
   const handleChange = (index: number, value: string) => {
-    const newAnswers = [...answers];
-    newAnswers[index] = value;
-    setAnswers(newAnswers);
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = value;
+    setAnswers(updatedAnswers);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("fantasyAnswers", JSON.stringify(answers));
+    localStorage.setItem("quizAnswers", JSON.stringify(answers));
     router.push("/selfie");
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {questions.map((q, idx) => (
-        <div key={idx}>
-          <label className="block font-semibold mb-1">{q}</label>
+    <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-6">
+      {questions.map((q, i) => (
+        <div key={i}>
+          <label className="block mb-1 font-medium text-lg">{q}</label>
           <input
-            required
             type="text"
-            value={answers[idx]}
-            onChange={(e) => handleChange(idx, e.target.value)}
-            className="w-full border px-4 py-2 rounded"
+            value={answers[i]}
+            onChange={(e) => handleChange(i, e.target.value)}
+            required
+            className="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>
       ))}
-      <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded">
-        Continue to Selfie
+      <button
+        type="submit"
+        className="mt-4 w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700"
+      >
+        Next: Take a Selfie
       </button>
     </form>
   );
-};
+}
 
-export default QuizForm;
 
