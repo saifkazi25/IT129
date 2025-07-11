@@ -4,33 +4,31 @@ import { generateFantasyImage, mergeFace } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
-    const { answers, selfieImage } = data;
+    const reqBody = await req.json();
+    const { prompt, selfie } = reqBody;
 
-    if (!answers || !selfieImage) {
-      return NextResponse.json({ error: 'Missing data' }, { status: 400 });
-    }
+    // 🔥 Ensure prompt is a string
+    const promptText = Array.isArray(prompt) ? prompt.join(', ') : prompt;
 
-    // 1. Generate fantasy image with SDXL
-    const fantasyImage = await generateFantasyImage(answers);
+    // ✅ Step 1: Generate fantasy image
+    const fantasyImage = await generateFantasyImage(promptText);
 
-    // 2. Convert selfie from base64 to Buffer
-    const base64Data = selfieImage.replace(/^data:image\/\w+;base64,/, '');
-    const selfieBuffer = Buffer.from(base64Data, 'base64');
+    // ✅ Step 2: Upload selfie to Cloudinary
+    const selfieUrl = await uploadToCloudinary(selfie);
 
-    // 3. Upload selfie to Cloudinary
-    const uploadedSelfie = await uploadToCloudinary(selfieBuffer);
+    // ✅ Step 3: Merge selfie face into fantasy image
+    const mergedImage = await mergeFace(selfieUrl, fantasyImage);
 
-    if (!uploadedSelfie?.secure_url) {
-      return NextResponse.json({ error: 'Failed to upload selfie' }, { status: 500 });
-    }
-
-    // 4. Merge face with fantasy image
-    const finalImage = await mergeFace(fantasyImage, uploadedSelfie.secure_url);
-
-    return NextResponse.json({ image: finalImage });
-  } catch (err) {
-    console.error('Error generating fantasy image:', err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    // ✅ Return both images
+    return NextResponse.json({
+      fantasyImage,
+      mergedImage,
+    });
+  } catch (error) {
+    console.error('Error generating fantasy image:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate image' },
+      { status: 500 }
+    );
   }
 }
