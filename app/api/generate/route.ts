@@ -44,9 +44,9 @@ export async function POST(req: Request) {
 
     console.log("🧠 Prompt to SDXL:", prompt);
 
-    // Step 1: Generate image using SDXL
+    // Step 1: Generate image using working SDXL version
     const sdxlOutput = await runPrediction(
-      "stability-ai/sdxl:db21e45c69b0b3f60a194da3e1348c6ce6975d49b9be4f56ec22b7f525d81f3b",
+      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
       {
         prompt,
         width: 1024,
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       }
     );
 
-    const fantasyImage = sdxlOutput[0];
+    const fantasyImage = sdxlOutput?.[0];
     console.log("🔍 SDXL output:", fantasyImage);
 
     // Step 2: Upload base64 selfie to Replicate (needs to be a public URL)
@@ -87,4 +87,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || "Internal error" }, { status: 500 });
   }
 }
-
