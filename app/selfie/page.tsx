@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import CustomWebcam from '@/components/CustomWebcam';
+import CustomWebcam from '../../components/CustomWebcam';
 
 export default function SelfiePage() {
   const [imageData, setImageData] = useState<string | null>(null);
@@ -22,4 +22,3 @@ export default function SelfiePage() {
     </main>
   );
 }
-
