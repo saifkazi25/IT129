@@ -4,19 +4,24 @@ import { generateFantasyImage, mergeFace } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { quizData, selfieBase64 } = body;
+    const formData = await req.formData();
+    const selfieFile = formData.get('selfie') as File;
+    const prompt = formData.get('prompt') as string;
 
-    if (!quizData || !selfieBase64) {
-      return NextResponse.json({ error: 'Missing quiz data or selfie' }, { status: 400 });
+    if (!selfieFile || !prompt) {
+      return NextResponse.json(
+        { error: 'Missing selfie or prompt' },
+        { status: 400 }
+      );
     }
 
     // ✅ Step 1: Upload selfie to Cloudinary
-    const uploadedSelfie = await uploadToCloudinary(selfieBase64);
-    const selfieUrl = uploadedSelfie.secure_url; // ✅ FIX: extract string
+    const buffer = Buffer.from(await selfieFile.arrayBuffer());
+    const selfieUploadResult = await uploadToCloudinary(buffer);
+    const selfieUrl = selfieUploadResult.secure_url;
 
-    // ✅ Step 2: Generate fantasy image
-    const fantasyImage = await generateFantasyImage(quizData);
+    // ✅ Step 2: Generate fantasy image from prompt
+    const fantasyImage = await generateFantasyImage(prompt);
 
     // ✅ Step 3: Merge selfie face into fantasy image
     const mergedImage = await mergeFace(selfieUrl, fantasyImage);
@@ -28,6 +33,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Error generating fantasy image:', error);
-    return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to generate fantasy image' },
+      { status: 500 }
+    );
   }
 }
