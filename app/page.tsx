@@ -1,14 +1,15 @@
-import React, { Suspense } from "react";
 import QuizForm from "@/components/QuizForm";
 
-export default function Page() {
+export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
-      <h1 className="text-4xl font-bold mb-4">🧠 Infinite Tsukuyomi Quiz</h1>
-      <Suspense fallback={<p>Loading quiz...</p>}>
+    <main className="flex min-h-screen items-center justify-center bg-white text-black p-4">
+      <div className="max-w-2xl w-full space-y-6">
+        <h1 className="text-3xl font-bold text-center">🌀 Enter the Infinite Tsukuyomi</h1>
+        <p className="text-center text-gray-700">Answer the 7 questions to reveal your fantasy world...</p>
         <QuizForm />
-      </Suspense>
+      </div>
     </main>
   );
 }
+
 
