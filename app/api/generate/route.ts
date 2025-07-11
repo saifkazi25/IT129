@@ -1,4 +1,4 @@
- const body = await req.json();
+  const body = await req.json();
     const { answers, image } = body;
 
     // Prompt formatting
