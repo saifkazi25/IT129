@@ -4,25 +4,19 @@ import { generateFantasyImage, mergeFace } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const answers = JSON.parse(formData.get('answers') as string);
-    const selfieImage = formData.get('selfie') as File;
+    const data = await req.json();
+    const { answers, selfieImage } = data;
 
     if (!answers || !selfieImage) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 });
     }
 
-    // 1. Generate fantasy image
-    const prompt = `A fantasy illustration of a person in a ${answers.join(', ')} world, vibrant colors, cinematic lighting, highly detailed, front-facing full portrait`;
-    const fantasyImage = await generateFantasyImage(prompt);
+    // 1. Generate fantasy image with SDXL
+    const fantasyImage = await generateFantasyImage(answers);
 
-    if (!fantasyImage) {
-      return NextResponse.json({ error: 'Failed to generate fantasy image' }, { status: 500 });
-    }
-
-    // 2. Convert selfie File to buffer
-    const selfieArrayBuffer = await selfieImage.arrayBuffer();
-    const selfieBuffer = Buffer.from(selfieArrayBuffer);
+    // 2. Convert selfie from base64 to Buffer
+    const base64Data = selfieImage.replace(/^data:image\/\w+;base64,/, '');
+    const selfieBuffer = Buffer.from(base64Data, 'base64');
 
     // 3. Upload selfie to Cloudinary
     const uploadedSelfie = await uploadToCloudinary(selfieBuffer);
@@ -31,19 +25,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to upload selfie' }, { status: 500 });
     }
 
-    // 4. Merge face using FaceFusion
-    const finalImage = await mergeFace({
-      target: fantasyImage,
-      source: uploadedSelfie.secure_url,
-    });
-
-    if (!finalImage) {
-      return NextResponse.json({ error: 'Failed to merge face' }, { status: 500 });
-    }
+    // 4. Merge face with fantasy image
+    const finalImage = await mergeFace(fantasyImage, uploadedSelfie.secure_url);
 
     return NextResponse.json({ image: finalImage });
-  } catch (error) {
-    console.error('Error generating image:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err) {
+    console.error('Error generating fantasy image:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
