@@ -1,37 +1,37 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 export default function ResultPage() {
-  const [result, setResult] = useState<string | null>(null);
-  const [fantasyImage, setFantasyImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchImage = async () => {
-      const answers = localStorage.getItem('fantasyAnswers');
-      const selfieImage = localStorage.getItem('selfieImage');
+      const storedAnswers = localStorage.getItem("quizAnswers");
+      const storedSelfie = localStorage.getItem("selfie");
 
-      if (!answers || !selfieImage) {
-        alert('Missing answers or selfie image.');
+      if (!storedAnswers || !storedSelfie) {
+        alert("Missing quiz answers or selfie!");
         return;
       }
 
       try {
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            answers: JSON.parse(answers),
-            image: selfieImage,
+            answers: JSON.parse(storedAnswers),
+            selfie: storedSelfie,
           }),
         });
 
-        const data = await response.json();
-        setResult(data.result);
-        setFantasyImage(data.fantasyImage);
-      } catch (err) {
-        console.error('Generation failed:', err);
+        const data = await res.json();
+        setImage(data.output?.merged || data.output?.fantasy);
+      } catch (error) {
+        console.error("Error generating image:", error);
       } finally {
         setLoading(false);
       }
@@ -41,24 +41,18 @@ export default function ResultPage() {
   }, []);
 
   return (
-    <div className="min-h-screen p-6 bg-white text-black text-center">
-      <h1 className="text-3xl font-bold mb-4">🖼️ Your Tsukuyomi Fantasy</h1>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-6">🌌 Your Fantasy World</h1>
       {loading ? (
-        <p>✨ Generating your fantasy world... Please wait.</p>
-      ) : result ? (
-        <img src={result} alt="Final Fantasy Image" className="mx-auto rounded-lg" />
+        <p>Generating your fantasy image...</p>
+      ) : image ? (
+        <img src={image} alt="Fantasy Result" className="max-w-full rounded-lg shadow-lg" />
       ) : (
-        <p>❌ Something went wrong. Please try again.</p>
+        <p>Something went wrong. Please try again.</p>
       )}
-
-      {fantasyImage && (
-        <div className="mt-6">
-          <p className="text-gray-600">Base fantasy image (before FaceFusion):</p>
-          <img src={fantasyImage} alt="Fantasy Base" className="mx-auto w-1/2 rounded" />
-        </div>
-      )}
-    </div>
+    </main>
   );
 }
+
 
 
