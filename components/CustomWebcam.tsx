@@ -1,49 +1,39 @@
 "use client";
 
-import React, { useRef, useState } from "react";
 import Webcam from "react-webcam";
+import { useRef } from "react";
 
-type Props = {
-  onCapture: (dataUrl: string) => void;
-};
-
-const CustomWebcam = ({ onCapture }: Props) => {
-  const webcamRef = useRef<Webcam>(null);
-  const [captured, setCaptured] = useState(false);
+export default function CustomWebcam({ onCapture }: { onCapture: (img: string) => void }) {
+  const webcamRef = useRef<Webcam | null>(null);
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       onCapture(imageSrc);
-      setCaptured(true);
+    } else {
+      alert("Could not capture image.");
     }
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center space-y-4">
       <Webcam
-        audio={false}
         ref={webcamRef}
+        audio={false}
         screenshotFormat="image/jpeg"
-        className="rounded-lg shadow-md"
-        width={300}
-        videoConstraints={{
-          facingMode: "user",
-        }}
+        className="rounded shadow-lg"
+        videoConstraints={{ facingMode: "user" }}
       />
-      {!captured && (
-        <button
-          onClick={capture}
-          className="mt-4 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
-        >
-          Capture Selfie
-        </button>
-      )}
+      <button
+        onClick={capture}
+        className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+      >
+        Capture Selfie
+      </button>
     </div>
   );
-};
+}
 
-export default CustomWebcam;
 
 
 
