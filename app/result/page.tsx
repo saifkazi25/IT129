@@ -1,49 +1,64 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<string | null>(null);
   const [fantasyImage, setFantasyImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchResult = async () => {
-      const storedResult = localStorage.getItem("result");
-      const storedFantasy = localStorage.getItem("fantasyImage");
+    const fetchImage = async () => {
+      const answers = localStorage.getItem('fantasyAnswers');
+      const selfieImage = localStorage.getItem('selfieImage');
 
-      if (storedResult && storedFantasy) {
-        setResult(storedResult);
-        setFantasyImage(storedFantasy);
+      if (!answers || !selfieImage) {
+        alert('Missing answers or selfie image.');
+        return;
       }
 
-      setLoading(false);
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            answers: JSON.parse(answers),
+            image: selfieImage,
+          }),
+        });
+
+        const data = await response.json();
+        setResult(data.result);
+        setFantasyImage(data.fantasyImage);
+      } catch (err) {
+        console.error('Generation failed:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchResult();
+    fetchImage();
   }, []);
 
-  if (loading) return <div className="text-center p-4">Loading...</div>;
-
-  if (!result) return <div className="text-center p-4">No result found.</div>;
-
   return (
-    <main className="min-h-screen bg-white text-black p-6 text-center">
-      <h1 className="text-2xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
-      <p className="mb-2">Here is the fantasy world crafted from your imagination:</p>
+    <div className="min-h-screen p-6 bg-white text-black text-center">
+      <h1 className="text-3xl font-bold mb-4">🖼️ Your Tsukuyomi Fantasy</h1>
+      {loading ? (
+        <p>✨ Generating your fantasy world... Please wait.</p>
+      ) : result ? (
+        <img src={result} alt="Final Fantasy Image" className="mx-auto rounded-lg" />
+      ) : (
+        <p>❌ Something went wrong. Please try again.</p>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div>
-          <h2 className="font-semibold mb-2">Fantasy Background (Before FaceFusion)</h2>
-          {fantasyImage && <img src={fantasyImage} alt="Fantasy Background" className="mx-auto rounded shadow" />}
+      {fantasyImage && (
+        <div className="mt-6">
+          <p className="text-gray-600">Base fantasy image (before FaceFusion):</p>
+          <img src={fantasyImage} alt="Fantasy Base" className="mx-auto w-1/2 rounded" />
         </div>
-
-        <div>
-          <h2 className="font-semibold mb-2">Final Result (With Your Face)</h2>
-          {result && <img src={result} alt="Final Fantasy Result" className="mx-auto rounded shadow" />}
-        </div>
-      </div>
-    </main>
+      )}
+    </div>
   );
 }
+
 
