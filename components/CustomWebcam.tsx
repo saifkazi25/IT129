@@ -1,40 +1,43 @@
-"use client";
+'use client';
 
-import Webcam from "react-webcam";
-import { useRef } from "react";
+import React, { useCallback, useRef, useState } from 'react';
+import Webcam from 'react-webcam';
 
-export default function CustomWebcam({ onCapture }: { onCapture: (img: string) => void }) {
-  const webcamRef = useRef<Webcam | null>(null);
+const videoConstraints = {
+  width: 640,
+  height: 480,
+  facingMode: 'user',
+};
 
-  const capture = () => {
+export default function CustomWebcam({ onCapture }: { onCapture: (dataUrl: string) => void }) {
+  const webcamRef = useRef<Webcam>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const capture = useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       onCapture(imageSrc);
     } else {
-      alert("Could not capture image.");
+      setError('Failed to capture image. Please try again.');
     }
-  };
+  }, [webcamRef, onCapture]);
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center gap-4">
       <Webcam
-        ref={webcamRef}
         audio={false}
+        ref={webcamRef}
         screenshotFormat="image/jpeg"
-        className="rounded shadow-lg"
-        videoConstraints={{ facingMode: "user" }}
+        width={320}
+        videoConstraints={videoConstraints}
       />
       <button
         onClick={capture}
-        className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+        className="px-6 py-2 text-white bg-purple-600 rounded hover:bg-purple-700"
       >
         Capture Selfie
       </button>
+      {error && <p className="text-red-500">{error}</p>}
     </div>
   );
 }
-
-
-
-
-
