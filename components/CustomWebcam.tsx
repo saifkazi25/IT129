@@ -1,56 +1,49 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import React, { useRef, useState } from "react";
+import Webcam from "react-webcam";
 
-const questions = [
-  "What kind of landscape do you dream of?",
-  "Which city feels most like home in your dreams?",
-  "What kind of character do you see yourself as?",
-  "What outfit are you wearing?",
-  "What’s the vibe of your dream world?",
-  "What kind of story is unfolding around you?",
-  "Do you have any supernatural powers or abilities?"
-];
+type Props = {
+  onCapture: (dataUrl: string) => void;
+};
 
-export default function QuizForm() {
-  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(""));
-  const router = useRouter();
+const CustomWebcam = ({ onCapture }: Props) => {
+  const webcamRef = useRef<Webcam>(null);
+  const [captured, setCaptured] = useState(false);
 
-  const handleChange = (index: number, value: string) => {
-    const updatedAnswers = [...answers];
-    updatedAnswers[index] = value;
-    setAnswers(updatedAnswers);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    localStorage.setItem("quizAnswers", JSON.stringify(answers));
-    router.push("/selfie");
+  const capture = () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      onCapture(imageSrc);
+      setCaptured(true);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-6">
-      {questions.map((q, i) => (
-        <div key={i}>
-          <label className="block mb-1 font-medium text-lg">{q}</label>
-          <input
-            type="text"
-            value={answers[i]}
-            onChange={(e) => handleChange(i, e.target.value)}
-            required
-            className="w-full border border-gray-300 rounded px-3 py-2"
-          />
-        </div>
-      ))}
-      <button
-        type="submit"
-        className="mt-4 w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700"
-      >
-        Next: Take a Selfie
-      </button>
-    </form>
+    <div className="flex flex-col items-center">
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        className="rounded-lg shadow-md"
+        width={300}
+        videoConstraints={{
+          facingMode: "user",
+        }}
+      />
+      {!captured && (
+        <button
+          onClick={capture}
+          className="mt-4 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+        >
+          Capture Selfie
+        </button>
+      )}
+    </div>
   );
-}
+};
+
+export default CustomWebcam;
+
 
 
