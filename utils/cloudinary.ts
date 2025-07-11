@@ -7,8 +7,13 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function uploadToCloudinary(buffer: Buffer): Promise<{ secure_url: string }> {
+// Accept base64 string instead of Buffer
+export async function uploadToCloudinary(base64: string): Promise<{ secure_url: string }> {
   return new Promise((resolve, reject) => {
+    // Strip data URI prefix if present
+    const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
     const uploadStream = cloudinary.v2.uploader.upload_stream(
       { folder: 'infinite-tsukuyomi' },
       (error, result) => {
