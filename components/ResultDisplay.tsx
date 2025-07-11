@@ -1,27 +1,59 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
 
-export default function ResultDisplay() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const image = searchParams.get("image");
+interface ResultDisplayProps {
+  answers: string[];
+  selfieImage: string;
+}
+
+export default function ResultDisplay({ answers, selfieImage }: ResultDisplayProps) {
+  const [mergedImage, setMergedImage] = useState<string | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
+
+  const handleMerge = async () => {
+    setIsMerging(true);
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers, selfieImage }),
+      });
+
+      const data = await response.json();
+      setMergedImage(data.outputImageUrl);
+    } catch (error) {
+      console.error('Error merging image:', error);
+    } finally {
+      setIsMerging(false);
+    }
+  };
 
   return (
-    <div className="p-6 flex flex-col items-center space-y-6">
-      <h2 className="text-3xl font-bold text-center">🌌 Your Fantasy Unlocked</h2>
-      {image ? (
-        <img src={image} alt="Fantasy Result" className="rounded-lg max-w-full" />
-      ) : (
-        <p>No image generated.</p>
-      )}
+    <div className="flex flex-col items-center gap-4">
+      <p className="text-lg">Your Fantasy World Based on Your Answers:</p>
+      <ul className="text-sm text-left list-disc">
+        {answers.map((answer, index) => (
+          <li key={index}>{answer}</li>
+        ))}
+      </ul>
+      <img src={selfieImage} alt="Your Selfie" className="w-48 h-48 rounded-full mt-4 border" />
       <button
-        onClick={() => router.push("/")}
-        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        onClick={handleMerge}
+        disabled={isMerging}
       >
-        Start Over
+        {isMerging ? 'Merging...' : 'Merge My Face'}
       </button>
+      {mergedImage && (
+        <img
+          src={mergedImage}
+          alt="Merged Fantasy Image"
+          className="mt-6 w-full max-w-md border rounded"
+        />
+      )}
     </div>
   );
 }
