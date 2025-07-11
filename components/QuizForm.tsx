@@ -1,42 +1,53 @@
 'use client';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
-export default function QuizForm() {
+const questions = [
+  "What season feels most magical to you?",
+  "Pick a city you'd love to explore.",
+  "Choose your character type.",
+  "What outfit are you wearing?",
+  "Pick an element in your scene.",
+  "What feeling do you want to experience?",
+  "Choose a superpower."
+];
+
+const QuizForm: React.FC = () => {
+  const [answers, setAnswers] = useState(Array(questions.length).fill(''));
   const router = useRouter();
-  const [answers, setAnswers] = useState<string[]>(Array(7).fill(""));
 
   const handleChange = (index: number, value: string) => {
-    const updated = [...answers];
-    updated[index] = value;
-    setAnswers(updated);
+    const newAnswers = [...answers];
+    newAnswers[index] = value;
+    setAnswers(newAnswers);
   };
 
-  const handleSubmit = () => {
-    localStorage.setItem("fantasy-answers", JSON.stringify(answers));
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem("fantasyAnswers", JSON.stringify(answers));
     router.push("/selfie");
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
-      {answers.map((_, i) => (
-        <div key={i}>
-          <label className="block font-semibold text-lg">Q{i + 1}</label>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {questions.map((q, idx) => (
+        <div key={idx}>
+          <label className="block font-semibold mb-1">{q}</label>
           <input
+            required
             type="text"
-            className="w-full p-2 border border-gray-300 rounded"
-            value={answers[i]}
-            onChange={(e) => handleChange(i, e.target.value)}
-            placeholder={`Enter fantasy detail #${i + 1}`}
+            value={answers[idx]}
+            onChange={(e) => handleChange(idx, e.target.value)}
+            className="w-full border px-4 py-2 rounded"
           />
         </div>
       ))}
-      <button
-        onClick={handleSubmit}
-        className="bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
-      >
-        Next: Take a Selfie
+      <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded">
+        Continue to Selfie
       </button>
-    </div>
+    </form>
   );
-}
+};
+
+export default QuizForm;
+
