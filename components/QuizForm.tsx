@@ -1,63 +1,58 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const questions = [
-  "What kind of weather do you love the most?",
-  "Which city or world do you wish to explore?",
-  "What role would you play in your fantasy world?",
-  "What would you wear in that fantasy?",
-  "What’s the environment like around you?",
-  "What is the emotion or energy in that world?",
-  "Are you flying, fighting, or floating?"
+  'What environment feels most magical to you?',
+  'Pick a city you dream of exploring.',
+  'Choose a role you’d love to embody.',
+  'What would you wear in that dream?',
+  'Where do you want this adventure to take place?',
+  'What emotion drives your fantasy?',
+  'What power would you want to have?',
 ];
 
 export default function QuizForm() {
-  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(""));
   const router = useRouter();
+  const [answers, setAnswers] = useState(Array(questions.length).fill(''));
 
   const handleChange = (index: number, value: string) => {
-    const updated = [...answers];
-    updated[index] = value;
-    setAnswers(updated);
+    const newAnswers = [...answers];
+    newAnswers[index] = value;
+    setAnswers(newAnswers);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (answers.some((a) => !a)) {
-      alert("Please answer all questions");
-      return;
-    }
-
-    localStorage.setItem("quizAnswers", JSON.stringify(answers));
-    router.push("/selfie");
+    localStorage.setItem('quizAnswers', JSON.stringify(answers));
+    router.push('/selfie');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {questions.map((q, i) => (
-        <div key={i} className="flex flex-col">
-          <label className="mb-1 font-medium">{q}</label>
+        <div key={i}>
+          <label className="block font-medium text-lg mb-1">{q}</label>
           <input
             type="text"
+            className="w-full border px-4 py-2 rounded"
             value={answers[i]}
             onChange={(e) => handleChange(i, e.target.value)}
-            className="border p-2 rounded"
-            placeholder="Type your answer..."
             required
           />
         </div>
       ))}
       <button
         type="submit"
-        className="w-full bg-black text-white py-2 px-4 rounded hover:bg-gray-800"
+        className="w-full py-2 bg-purple-700 text-white rounded hover:bg-purple-800"
       >
         Continue to Selfie
       </button>
     </form>
   );
 }
+
 
 
 
