@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing data' }, { status: 400 });
     }
 
-    // 1. Generate fantasy image with SDXL
+    // 1. Generate fantasy image
     const prompt = `A fantasy illustration of a person in a ${answers.join(', ')} world, vibrant colors, cinematic lighting, highly detailed, front-facing full portrait`;
     const fantasyImage = await generateFantasyImage(prompt);
 
@@ -20,14 +20,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to generate fantasy image' }, { status: 500 });
     }
 
-    // 2. Upload selfie to Cloudinary
-    const uploadedSelfie = await uploadToCloudinary(selfieImage);
+    // 2. Convert selfie File to buffer
+    const selfieArrayBuffer = await selfieImage.arrayBuffer();
+    const selfieBuffer = Buffer.from(selfieArrayBuffer);
+
+    // 3. Upload selfie to Cloudinary
+    const uploadedSelfie = await uploadToCloudinary(selfieBuffer);
 
     if (!uploadedSelfie?.secure_url) {
       return NextResponse.json({ error: 'Failed to upload selfie' }, { status: 500 });
     }
 
-    // 3. Merge face using FaceFusion
+    // 4. Merge face using FaceFusion
     const finalImage = await mergeFace({
       target: fantasyImage,
       source: uploadedSelfie.secure_url,
