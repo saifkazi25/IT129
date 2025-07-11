@@ -1,0 +1,36 @@
+// utils/cloudinary.ts
+
+export async function uploadToCloudinary(base64Image: string) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Missing Cloudinary environment variables");
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  const formData = new FormData();
+  formData.append("file", base64Image);
+  formData.append("api_key", apiKey);
+  formData.append("timestamp", timestamp.toString());
+  formData.append("upload_preset", "ml_default"); // Optional: can be removed if not set in Cloudinary
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    console.error("Cloudinary upload failed:", err);
+    throw new Error("Cloudinary upload failed");
+  }
+
+  const data = await response.json();
+  return data.secure_url; // Public image URL
+}
