@@ -41,3 +41,4 @@ export default function CustomWebcam({ onCapture }: { onCapture: (dataUrl: strin
     </div>
   );
 }
+
