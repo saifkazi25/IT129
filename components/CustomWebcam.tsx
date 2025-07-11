@@ -1,6 +1,6 @@
 'use client';
 
-import Webcam, { WebcamProps } from 'react-webcam';
+import Webcam from 'react-webcam';
 import { useCallback, useRef, useState } from 'react';
 
 interface CustomWebcamProps {
@@ -8,7 +8,7 @@ interface CustomWebcamProps {
 }
 
 export default function CustomWebcam({ onCapture }: CustomWebcamProps) {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // Temporarily use 'any' to fix the typing issue
   const [error, setError] = useState<string | null>(null);
 
   const capture = useCallback(() => {
@@ -28,9 +28,7 @@ export default function CustomWebcam({ onCapture }: CustomWebcamProps) {
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        videoConstraints={{
-          facingMode: 'user',
-        }}
+        videoConstraints={{ facingMode: 'user' }}
         className="rounded border"
       />
       <button
@@ -43,6 +41,3 @@ export default function CustomWebcam({ onCapture }: CustomWebcamProps) {
     </div>
   );
 }
-
-
-
