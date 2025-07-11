@@ -1,40 +1,56 @@
-'use client';
-import React, { useRef, useState } from 'react';
-import Webcam from 'react-webcam';
-import { useRouter } from 'next/navigation';
+"use client";
 
-const CustomWebcam: React.FC = () => {
-  const webcamRef = useRef<Webcam>(null);
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+const questions = [
+  "What kind of landscape do you dream of?",
+  "Which city feels most like home in your dreams?",
+  "What kind of character do you see yourself as?",
+  "What outfit are you wearing?",
+  "What’s the vibe of your dream world?",
+  "What kind of story is unfolding around you?",
+  "Do you have any supernatural powers or abilities?"
+];
+
+export default function QuizForm() {
+  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(""));
   const router = useRouter();
-  const [error, setError] = useState("");
 
-  const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      localStorage.setItem("selfieImage", imageSrc);
-      router.push("/result");
-    } else {
-      setError("Failed to capture image. Please try again.");
-    }
+  const handleChange = (index: number, value: string) => {
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = value;
+    setAnswers(updatedAnswers);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem("quizAnswers", JSON.stringify(answers));
+    router.push("/selfie");
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        width={320}
-        height={320}
-        videoConstraints={{ facingMode: "user" }}
-      />
-      <button onClick={capture} className="bg-green-600 text-white px-6 py-2 rounded">
-        Capture & View Result
+    <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-6">
+      {questions.map((q, i) => (
+        <div key={i}>
+          <label className="block mb-1 font-medium text-lg">{q}</label>
+          <input
+            type="text"
+            value={answers[i]}
+            onChange={(e) => handleChange(i, e.target.value)}
+            required
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          />
+        </div>
+      ))}
+      <button
+        type="submit"
+        className="mt-4 w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700"
+      >
+        Next: Take a Selfie
       </button>
-      {error && <p className="text-red-500">{error}</p>}
-    </div>
+    </form>
   );
-};
+}
 
-export default CustomWebcam;
 
