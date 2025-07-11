@@ -1,36 +1,43 @@
 import { NextResponse } from "next/server";
-import Replicate from "replicate";
-import cloudinary from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
-export const runtime = "nodejs"; // Required for fetch in edge environments
+export const runtime = "nodejs"; // required for external fetch
 
-// Initialize Replicate
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || "",
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-// Initialize Cloudinary
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const replicateBase = "https://api.replicate.com/v1/predictions";
+const replicateHeaders = {
+  Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+  "Content-Type": "application/json",
+};
 
-async function uploadToCloudinary(base64Image: string) {
-  try {
-    const res = await cloudinary.v2.uploader.upload(base64Image, {
-      folder: "infinite-tsukuyomi",
-    });
-    return res.secure_url;
-  } catch (err) {
-    console.error("❌ Cloudinary Upload Error:", err);
-    throw new Error("Failed to upload selfie to Cloudinary");
+async function runReplicatePrediction(version: string, input: any) {
+  const response = await fetch(replicateBase, {
+    method: "POST",
+    headers: {
+      ...replicateHeaders,
+      Prefer: "wait",
+    },
+    body: JSON.stringify({ version, input }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Replicate error: ${response.status} - ${errorBody}`);
   }
+
+  const data = await response.json();
+  return data.output;
 }
 
 export async function POST(req: Request) {
   try {
-    const { answers, image } = await req.json();
+    const body = await req.json();
+    const { answers, image } = body;
 
     if (!answers || !image) {
       return NextResponse.json(
@@ -39,51 +46,56 @@ export async function POST(req: Request) {
       );
     }
 
-    // Prompt formatting
+    // Step 1: Format prompt
     const prompt = `Create a fantasy scene with elements: ${answers.join(
       ", "
     )}. Include a clear, front-facing, photorealistic human character in the center of the scene.`;
+
     console.log("🧠 Prompt to SDXL:", prompt);
 
-    // Step 1: Generate fantasy image using SDXL
-    const sdxlRawResult = (await replicate.run(
-      "stability-ai/sdxl:db21e45c69b0b3f60a194da3e1348c6ce6975d49b9be4f56ec22b7f525d81f3b",
+    // Step 2: Generate fantasy image via SDXL
+    const sdxlResult = await runReplicatePrediction(
+      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
       {
-        input: {
-          prompt,
-          width: 1024,
-          height: 1024,
-        },
+        prompt,
+        width: 768,
+        height: 768,
       }
-    )) as string[];
+    );
 
-    const fantasyImage = sdxlRawResult?.[0];
-    console.log("🔍 SDXL output:", fantasyImage);
+    const fantasyImage = sdxlResult?.[0];
+    console.log("🎨 Fantasy Image:", fantasyImage);
 
-    // Step 2: Upload selfie to Cloudinary
-    const userImageUrl = await uploadToCloudinary(image);
-    console.log("📸 Cloudinary Selfie URL:", userImageUrl);
+    // Step 3: Upload selfie to Cloudinary
+    const uploadRes = await cloudinary.uploader.upload(image, {
+      folder: "tsukuyomi",
+    });
 
-    // Step 3: Merge using FaceFusion
-    const fusionResult = (await replicate.run(
+    const selfieUrl = uploadRes.secure_url;
+    console.log("📷 Selfie uploaded to:", selfieUrl);
+
+    // Step 4: Run FaceFusion
+    const fusionResult = await runReplicatePrediction(
       "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
       {
-        input: {
-          user_image: userImageUrl,
-          template_image: fantasyImage,
-        },
+        user_image: selfieUrl,
+        template_image: fantasyImage,
       }
-    )) as string[];
+    );
 
     const result = fusionResult?.[0];
-    console.log("🌀 FaceFusion Result:", result);
 
-    return NextResponse.json({ fantasyImage, result });
+    return NextResponse.json({
+      fantasyImage,
+      result,
+      faceMerged: true,
+    });
   } catch (err: any) {
     console.error("❌ API error:", err);
     return NextResponse.json(
-      { error: err.message || "Unexpected server error" },
+      { error: err.message || "Internal Server Error" },
       { status: 500 }
     );
   }
 }
+
