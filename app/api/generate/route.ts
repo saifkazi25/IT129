@@ -1,90 +1,90 @@
-import { NextRequest, NextResponse } from "next/server";
-import Replicate from "replicate";
+import { NextResponse } from "next/server";
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
+export const runtime = "nodejs"; // needed for fetch to external URLs
 
-// Helper: Upload base64 image to Replicate delivery host
-async function uploadImage(base64: string): Promise<string> {
-  const blob = await fetch(base64).then(res => res.blob());
-  const form = new FormData();
-  form.append("file", blob, "selfie.png");
+const replicateBase = "https://api.replicate.com/v1/predictions";
+const replicateHeaders = {
+  Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+  "Content-Type": "application/json",
+};
 
-  const response = await fetch("https://upload.replicate.delivery/v1/upload", {
+async function runPrediction(version: string, input: any) {
+  const response = await fetch(replicateBase, {
     method: "POST",
-    body: form,
+    headers: {
+      ...replicateHeaders,
+      Prefer: "wait",
+    },
+    body: JSON.stringify({ version, input }),
   });
 
-  const data = await response.json();
-  return data?.url;
-}
-
-// Retry wrapper for rate limits
-async function runWithRetry<T>(fn: () => Promise<T>, retries = 5): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err: any) {
-      const retryAfter = parseInt(
-        err?.response?.headers?.get("retry-after") || "3"
-      );
-      console.warn(`⚠️ Rate limited. Retrying in ${retryAfter}s...`);
-      await new Promise((res) => setTimeout(res, retryAfter * 1000));
-    }
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Replicate error: ${response.status} - ${errorBody}`);
   }
-  throw new Error("Too many retries.");
+
+  const data = await response.json();
+  return data.output;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { answers, image } = body;
+    const answers = body.answers;
+    const base64Image = body.image;
 
-    const prompt = `Create a fantasy scene with elements: ${answers.join(", ")}. Include a clear, front-facing, photorealistic human character in the center of the scene.`;
+    if (!answers || !base64Image) {
+      return NextResponse.json({ error: "Missing inputs" }, { status: 400 });
+    }
+
+    // Build the fantasy prompt
+    const prompt = `Create a fantasy scene with elements: ${answers.join(
+      ", "
+    )}. Include a clear, front-facing, photorealistic human character in the center of the scene.`;
+
     console.log("🧠 Prompt to SDXL:", prompt);
 
-    // Step 1: SDXL Fantasy Generation
-    const sdxlRawResult = (await runWithRetry(() =>
-      replicate.run("stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", {
-        input: {
-          prompt,
-          width: 1024,
-          height: 1024,
-          num_outputs: 1,
-        },
-      })
-    )) as string[];
+    // Step 1: Generate image using SDXL
+    const sdxlOutput = await runPrediction(
+      "stability-ai/sdxl:db21e45c69b0b3f60a194da3e1348c6ce6975d49b9be4f56ec22b7f525d81f3b",
+      {
+        prompt,
+        width: 1024,
+        height: 1024,
+      }
+    );
 
-    const fantasyImage = sdxlRawResult[0];
+    const fantasyImage = sdxlOutput[0];
     console.log("🔍 SDXL output:", fantasyImage);
 
-    // Step 2: Upload selfie to replicate.delivery
-    const selfieUrl = await uploadImage(image);
-    console.log("📤 Uploaded selfie URL:", selfieUrl);
-
-    // Step 3: Merge via FaceFusion
-    const faceFusionResult = await runWithRetry(() =>
-      replicate.run("lucataco/modelscope-facefusion:2b86f64b07fc066509300001cf7e060d45a19e538d6aa30a02a4f17445e17df5", {
-        input: {
-          user_image: selfieUrl,
-          template_image: fantasyImage,
-        },
-      })
-    );
-
-    console.log("✅ FaceFusion complete:", faceFusionResult);
-
-    return NextResponse.json({
-      result: faceFusionResult,
-      fantasyImage,
-      faceMerged: true,
+    // Step 2: Upload base64 selfie to Replicate (needs to be a public URL)
+    const selfieUpload = await fetch("https://upload.replicate.delivery/v1/uploads", {
+      method: "POST",
+      headers: replicateHeaders,
     });
-  } catch (error) {
-    console.error("❌ Backend API failed:", error);
-    return NextResponse.json(
-      { error: "Image generation failed" },
-      { status: 500 }
+    const { upload_url: uploadUrl, serve_url: userImageUrl } = await selfieUpload.json();
+
+    await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "image/jpeg" },
+      body: Buffer.from(base64Image.split(",")[1], "base64"),
+    });
+
+    // Step 3: Run FaceFusion
+    const resultOutput = await runPrediction(
+      "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
+      {
+        user_image: userImageUrl,
+        template_image: fantasyImage,
+      }
     );
+
+    const result = resultOutput?.[0];
+
+    return NextResponse.json({ result, fantasyImage });
+  } catch (err: any) {
+    console.error("❌ API error:", err);
+    return NextResponse.json({ error: err.message || "Internal error" }, { status: 500 });
   }
 }
+
