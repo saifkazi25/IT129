@@ -1,14 +1,11 @@
-'use client';
+"use client";
 
-import { Suspense } from 'react';
-import CustomWebcam from '@/components/CustomWebcam';
+import CustomWebcam from "@/components/CustomWebcam";
 
 export default function SelfiePage() {
   return (
-    <Suspense fallback={<p className="p-10 text-center">Loading camera…</p>}>
-      <div className="min-h-screen flex items-center justify-center">
-        <CustomWebcam />
-      </div>
-    </Suspense>
+    <main className="flex min-h-screen items-center justify-center bg-white text-black">
+      <CustomWebcam />
+    </main>
   );
 }
