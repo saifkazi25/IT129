@@ -4,6 +4,10 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
+type PredictionResult = {
+  output: string[] | string;
+};
+
 // STEP 1: Generate fantasy image using SDXL
 async function generateFantasyImage(prompt: string) {
   const prediction = await replicate.run(
@@ -12,7 +16,7 @@ async function generateFantasyImage(prompt: string) {
       input: {
         width: 768,
         height: 768,
-        prompt: prompt,
+        prompt,
         refine: "expert_ensemble_refiner",
         scheduler: "K_EULER",
         lora_scale: 0.6,
@@ -25,10 +29,10 @@ async function generateFantasyImage(prompt: string) {
         num_inference_steps: 25,
       },
     }
-  );
+  ) as PredictionResult;
 
-  const output = prediction?.output;
-  return Array.isArray(output) ? output[0] : (output as string);
+  const output = prediction.output;
+  return Array.isArray(output) ? output[0] : output;
 }
 
 // STEP 2: Merge face into fantasy image using FaceFusion
@@ -42,11 +46,10 @@ async function mergeFace(fantasyImageUrl: string, selfieUrl: string) {
         face_enhancer: true,
       },
     }
-  );
+  ) as PredictionResult;
 
-  const output = prediction?.output;
-  return Array.isArray(output) ? output[0] : (output as string);
+  const output = prediction.output;
+  return Array.isArray(output) ? output[0] : output;
 }
 
-// ✅ Final correct export (only once!)
 export { generateFantasyImage, mergeFace };
