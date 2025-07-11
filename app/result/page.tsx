@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 
 export default function ResultPage() {
   const [fantasyImage, setFantasyImage] = useState<string | null>(null);
-  const [mergedImage, setMergedImage] = useState<string | null>(null);
+  const [resultImage, setResultImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mergeLoading, setMergeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -24,30 +25,23 @@ export default function ResultPage() {
 
     const fetchFantasyImage = async () => {
       try {
+        setLoading(true);
         const response = await fetch("/api/generate", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            answers,
-            image: storedImage,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers, image: storedImage }),
         });
 
         const data = await response.json();
 
-        if (response.ok && data.fantasyImage) {
-          setFantasyImage(data.fantasyImage);
-          if (data.result) {
-            setMergedImage(data.result);
-          }
-        } else {
-          setError("Image generation failed.");
+        if (!response.ok) {
+          throw new Error(data.error || "Image generation failed");
         }
-      } catch (err) {
-        console.error("Error:", err);
-        setError("Something went wrong.");
+
+        setFantasyImage(data.fantasyImage);
+        setResultImage(data.result);
+      } catch (err: any) {
+        setError(err.message || "Something went wrong.");
       } finally {
         setLoading(false);
       }
@@ -56,18 +50,26 @@ export default function ResultPage() {
     fetchFantasyImage();
   }, []);
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-white text-black">
-      <h1 className="text-3xl font-bold mb-6">🌟 Your Fantasy Self</h1>
+  const downloadImage = () => {
+    if (!resultImage) return;
+    const link = document.createElement("a");
+    link.href = resultImage;
+    link.download = "tsukuyomi.png";
+    link.click();
+  };
 
-      {loading && <p>Generating your fantasy world...</p>}
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-white text-black text-center">
+      <h1 className="text-3xl font-bold mb-6">🌌 Your Infinite Tsukuyomi</h1>
+
+      {loading && <p>Creating your fantasy world...</p>}
 
       {error && (
-        <div className="text-red-600 text-center">
+        <div className="text-red-600">
           <p>{error}</p>
           <button
             onClick={() => router.push("/")}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
           >
             Go Back
           </button>
@@ -75,27 +77,29 @@ export default function ResultPage() {
       )}
 
       {!loading && fantasyImage && (
-        <div className="flex flex-col items-center gap-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">🎨 Fantasy World</h2>
-            <img
-              src={fantasyImage}
-              alt="Fantasy Background"
-              className="w-full max-w-md rounded-lg shadow-md"
-            />
-          </div>
-
-          {mergedImage && (
-            <div>
-              <h2 className="text-xl font-semibold mb-2">🧞 You in that World</h2>
-              <img
-                src={mergedImage}
-                alt="Merged Fantasy Image"
-                className="w-full max-w-md rounded-lg shadow-md"
-              />
-            </div>
+        <>
+          <p className="mb-4 text-sm text-gray-600">
+            🧠 Generated fantasy world... now merging your face...
+          </p>
+          <img
+            src={resultImage || fantasyImage}
+            alt="Your fantasy self"
+            className="w-full max-w-md rounded-lg shadow-lg mb-4"
+          />
+          {!resultImage ? (
+            <p className="text-sm text-gray-500">🧬 FaceFusion in progress...</p>
+          ) : (
+            <>
+              <p className="text-green-700 font-semibold mb-2">✨ Face merge complete!</p>
+              <button
+                onClick={downloadImage}
+                className="px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700"
+              >
+                Download Image
+              </button>
+            </>
           )}
-        </div>
+        </>
       )}
     </main>
   );
