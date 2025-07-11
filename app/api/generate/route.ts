@@ -4,31 +4,42 @@ import { generateFantasyImage, mergeFace } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
-    const { answers, selfieImage } = await req.json();
+    const formData = await req.formData();
+    const answers = JSON.parse(formData.get('answers') as string);
+    const selfieImage = formData.get('selfie') as File;
 
-    if (!answers || !Array.isArray(answers) || answers.length !== 7 || !selfieImage) {
-      return NextResponse.json({ error: 'Missing or invalid data' }, { status: 400 });
+    if (!answers || !selfieImage) {
+      return NextResponse.json({ error: 'Missing data' }, { status: 400 });
     }
 
     // 1. Generate fantasy image with SDXL
-    const fantasyImage = await generateFantasyImage(answers);
+    const prompt = `A fantasy illustration of a person in a ${answers.join(', ')} world, vibrant colors, cinematic lighting, highly detailed, front-facing full portrait`;
+    const fantasyImage = await generateFantasyImage(prompt);
+
+    if (!fantasyImage) {
+      return NextResponse.json({ error: 'Failed to generate fantasy image' }, { status: 500 });
+    }
 
     // 2. Upload selfie to Cloudinary
     const uploadedSelfie = await uploadToCloudinary(selfieImage);
 
     if (!uploadedSelfie?.secure_url) {
-      return NextResponse.json({ error: 'Cloudinary upload failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to upload selfie' }, { status: 500 });
     }
 
-    // 3. Merge face with FaceFusion
+    // 3. Merge face using FaceFusion
     const finalImage = await mergeFace({
-      sourceImage: uploadedSelfie.secure_url,
-      targetImage: fantasyImage,
+      target: fantasyImage,
+      source: uploadedSelfie.secure_url,
     });
 
+    if (!finalImage) {
+      return NextResponse.json({ error: 'Failed to merge face' }, { status: 500 });
+    }
+
     return NextResponse.json({ image: finalImage });
-  } catch (error: any) {
-    console.error('API Error:', error);
+  } catch (error) {
+    console.error('Error generating image:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
