@@ -1,22 +1,23 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
+import { useRouter } from 'next/navigation';
+import type { default as WebcamType } from 'react-webcam';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<WebcamType | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const storedAnswers = localStorage.getItem('quizAnswers');
-    if (storedAnswers) {
-      setQuizAnswers(JSON.parse(storedAnswers));
+    const savedAnswers = localStorage.getItem('quizAnswers');
+    if (savedAnswers) {
+      setQuizAnswers(JSON.parse(savedAnswers));
     } else {
-      router.push('/'); // if no answers, go back to home
+      router.push('/'); // Redirect to quiz if answers missing
     }
   }, [router]);
 
@@ -24,64 +25,80 @@ export default function SelfiePage() {
     const screenshot = webcamRef.current?.getScreenshot();
     if (screenshot) {
       setImage(screenshot);
-      localStorage.setItem('selfie', screenshot);
     }
   };
 
-  const handleContinue = () => {
-    if (!image) {
-      alert('Please take a selfie before continuing.');
-      return;
-    }
-
+  const handleSubmit = async () => {
+    if (!image || !quizAnswers) return;
     setLoading(true);
-    router.push('/result');
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizAnswers,
+          image,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.finalImage) {
+        localStorage.setItem('finalImage', data.finalImage);
+        router.push('/result');
+      } else {
+        alert('Failed to generate image.');
+      }
+    } catch (err) {
+      console.error('Error submitting selfie:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
-      <h1 className="text-3xl font-bold mb-6 text-center">📸 Capture Your Selfie</h1>
+      <h1 className="text-2xl font-bold mb-4">Take Your Selfie</h1>
 
       {!image ? (
-        <div className="mb-4">
+        <>
           <Webcam
             audio={false}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
-            className="rounded-md shadow-lg w-full max-w-sm"
+            className="w-full max-w-sm rounded-lg shadow"
           />
           <button
             onClick={capture}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
           >
             Capture Selfie
           </button>
-        </div>
+        </>
       ) : (
-        <div className="flex flex-col items-center">
+        <>
           <img
             src={image}
             alt="Captured selfie"
-            className="rounded-md shadow-lg w-full max-w-sm"
+            className="w-full max-w-sm rounded-lg shadow"
           />
           <button
             onClick={() => setImage(null)}
-            className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
+            className="mt-2 text-sm text-blue-600 underline"
           >
             Retake
           </button>
-        </div>
+        </>
       )}
 
-      {image && (
-        <button
-          onClick={handleContinue}
-          disabled={loading}
-          className="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded"
-        >
-          {loading ? 'Processing...' : 'Continue'}
-        </button>
-      )}
+      <button
+        onClick={handleSubmit}
+        disabled={!image || loading}
+        className="mt-6 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+      >
+        {loading ? 'Generating...' : 'Generate My Fantasy'}
+      </button>
     </main>
   );
 }
+
