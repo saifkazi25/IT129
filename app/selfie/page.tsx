@@ -2,10 +2,10 @@
 
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Webcam from 'react-webcam';
+import Webcam, { Webcam as ReactWebcam } from 'react-webcam';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<ReactWebcam>(null);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -25,7 +25,6 @@ export default function SelfiePage() {
     }
 
     setLoading(true);
-
     try {
       const answers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
 
@@ -40,16 +39,14 @@ export default function SelfiePage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to generate image: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Request failed: ${response.statusText}`);
 
       const data = await response.json();
       localStorage.setItem('fantasyImage', data.output);
       router.push('/result');
-    } catch (error) {
-      console.error('Error generating fantasy image:', error);
-      alert('Something went wrong. Please try again.');
+    } catch (err) {
+      console.error('Error generating fantasy image:', err);
+      alert('Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -102,4 +99,3 @@ export default function SelfiePage() {
     </main>
   );
 }
-
