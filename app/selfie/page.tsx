@@ -1,12 +1,11 @@
 'use client';
 
-import React from 'react';
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
-  const webcamRef = React.useRef<Webcam>(null);
+  const webcamRef = useRef<ReactWebcam>(null);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -23,7 +22,6 @@ export default function SelfiePage() {
     if (!image) return;
 
     setLoading(true);
-
     try {
       const quizData = JSON.parse(localStorage.getItem('quizData') || '{}');
 
@@ -103,3 +101,6 @@ export default function SelfiePage() {
     </div>
   );
 }
+
+// 👇 This is required to fix the TS error about Webcam ref
+type ReactWebcam = React.ElementRef<typeof Webcam>;
