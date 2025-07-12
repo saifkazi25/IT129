@@ -1,37 +1,40 @@
 import { NextResponse } from 'next/server';
-import { uploadToCloudinary } from '../../../utils/cloudinary';
 import { generateFantasyImage, mergeFace } from '../../../utils/replicate';
+import { uploadToCloudinary } from '../../../utils/cloudinary';
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
+    // ✅ Parse incoming JSON
+    const { answers, selfie } = await req.json();
 
-    const prompt = formData.get('prompt') as string;
-    const selfieFile = formData.get('selfie') as File;
-
-    if (!prompt || !selfieFile) {
-      return NextResponse.json({ error: 'Missing prompt or selfie' }, { status: 400 });
+    if (!answers || !selfie) {
+      return NextResponse.json({ error: 'Missing answers or selfie' }, { status: 400 });
     }
 
-    // ✅ Step 1: Upload selfie to Cloudinary
-    const arrayBuffer = await selfieFile.arrayBuffer();
-    const buffer: Buffer = Buffer.from(arrayBuffer as ArrayBuffer);
+    // ✅ Convert base64 selfie to buffer
+    const base64Data = selfie.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    // ✅ Upload selfie to Cloudinary
     const selfieUploadResult = await uploadToCloudinary(buffer);
     const selfieUrl = selfieUploadResult.secure_url;
 
-    // ✅ Step 2: Generate fantasy image from prompt
+    // ✅ Turn answers into a prompt string
+    const prompt = answers.join(', '); // or customize with creative phrasing
+
+    // ✅ Generate fantasy image from prompt
     const fantasyImage = await generateFantasyImage(prompt);
 
-    // ✅ Step 3: Merge selfie face into fantasy image
+    // ✅ Merge selfie into fantasy image
     const mergedImage = await mergeFace(fantasyImage, selfieUrl);
 
-    // ✅ Return both images
+    // ✅ Return both images to frontend
     return NextResponse.json({
       fantasyImage,
       mergedImage,
     });
-  } catch (error) {
-    console.error('Error generating fantasy image:', error);
-    return NextResponse.json({ error: 'Image generation failed' }, { status: 500 });
+  } catch (err) {
+    console.error('Error generating fantasy image:', err);
+    return NextResponse.json({ error: 'Failed to generate fantasy image' }, { status: 500 });
   }
 }
