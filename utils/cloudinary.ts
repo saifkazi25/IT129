@@ -7,17 +7,13 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ✅ Accepts a Buffer for image upload
 export async function uploadToCloudinary(buffer: Buffer): Promise<{ secure_url: string }> {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.v2.uploader.upload_stream(
       { folder: 'infinite-tsukuyomi' },
       (error, result) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(result as { secure_url: string });
-        }
+        if (error) reject(error);
+        else resolve(result as { secure_url: string });
       }
     );
 
