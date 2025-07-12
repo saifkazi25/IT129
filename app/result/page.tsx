@@ -1,50 +1,69 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [status, setStatus] = useState('Generating your dream world...');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fantasyImage, setFantasyImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const quizAnswersRaw = localStorage.getItem('quizAnswers');
-    const selfie = localStorage.getItem('selfie');
+    const generateFantasyImage = async () => {
+      const answers = localStorage.getItem('quizAnswers');
+      const selfie = localStorage.getItem('selfie');
 
-    if (!quizAnswersRaw || !selfie) {
-      alert('Missing quiz answers. Redirecting...');
-      window.location.href = '/';
-      return;
-    }
+      if (!answers || !selfie) {
+        setError('Missing quiz answers or selfie.');
+        setLoading(false);
+        return;
+      }
 
-    const quizAnswers = JSON.parse(quizAnswersRaw);
-    const prompt = `A fantasy scene featuring a person with elements: ${quizAnswers.join(', ')}. High quality, full body, colorful, fantasy artwork, cinematic lighting`;
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            answers: JSON.parse(answers),
+            selfie,
+          }),
+        });
 
-    const generate = async () => {
-      setStatus('Creating your fantasy image...');
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Something went wrong.');
+        }
 
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, selfie }),
-      });
-
-      const data = await response.json();
-      if (data.image) {
-        setImageUrl(data.image);
-        setStatus('Your fantasy image is ready!');
-      } else {
-        setStatus('Failed to generate image.');
+        setFantasyImage(data.output);
+      } catch (err: any) {
+        console.error('Error generating fantasy image:', err);
+        setError(err.message || 'Failed to generate image.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    generate();
+    generateFantasyImage();
   }, []);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6">
-      <h1 className="text-3xl font-bold mb-4">🌌 Your Fantasy Awaits</h1>
-      <p className="mb-4">{status}</p>
-      {imageUrl && <img src={imageUrl} alt="Your Fantasy World" className="max-w-full rounded" />}
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
+      <h1 className="text-3xl font-bold mb-6 text-center">🌌 Your Fantasy World</h1>
+
+      {loading && <p className="text-lg">Generating your fantasy image...</p>}
+
+      {error && (
+        <p className="text-red-600 font-semibold text-center">{error}</p>
+      )}
+
+      {fantasyImage && (
+        <img
+          src={fantasyImage}
+          alt="Fantasy result"
+          className="rounded-lg shadow-lg max-w-full max-h-[80vh]"
+        />
+      )}
     </main>
   );
 }
