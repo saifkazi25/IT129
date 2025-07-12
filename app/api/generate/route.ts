@@ -4,35 +4,49 @@ import { runSDXL, runFaceFusion } from '../../../utils/replicate';
 
 export async function POST(req: NextRequest) {
   try {
-    const { answers, selfie } = await req.json();
+    const body = await req.json();
+    const { answers, selfie } = body;
 
     if (!answers || !selfie) {
       return NextResponse.json({ error: 'Missing answers or selfie' }, { status: 400 });
     }
 
-    // 1. Generate fantasy image using SDXL
-    const prompt = `A stunning fantasy world with themes: ${answers.join(', ')}. Full body or upper body view of a heroic figure, cinematic lighting, highly detailed, ultra realistic, front-facing face clearly visible`;
-    const sdxlImageUrl = await runSDXL(prompt);
-
-    // 2. Upload selfie to Cloudinary
-    const selfieBuffer = Buffer.from(selfie.split(',')[1], 'base64');
-    const cloudinaryUpload = await uploadToCloudinary(selfieBuffer);
-
+    // Upload selfie to Cloudinary to get a public URL
+    const base64 = selfie.split(',')[1];
+    const buffer = Buffer.from(base64, 'base64');
+    const cloudinaryUpload = await uploadToCloudinary(buffer);
     const selfieUrl = cloudinaryUpload.secure_url;
 
-    if (!selfieUrl || !sdxlImageUrl) {
-      return NextResponse.json({ error: 'Image URLs missing' }, { status: 500 });
+    // Generate fantasy image using SDXL
+    const prompt = generatePromptFromAnswers(answers);
+    const fantasyImage = await runSDXL(prompt);
+
+    if (!fantasyImage) {
+      return NextResponse.json({ error: 'SDXL image generation failed' }, { status: 500 });
     }
 
-    // 3. Run FaceFusion with SDXL image (target) and selfie (source)
-    const finalImageUrl = await runFaceFusion({
+    // Merge selfie with fantasy image using FaceFusion
+    const mergedImage = await runFaceFusion({
+      target: fantasyImage,
       source: selfieUrl,
-      target: sdxlImageUrl,
     });
 
-    return NextResponse.json({ image: finalImageUrl });
-  } catch (err) {
+    if (!mergedImage) {
+      return NextResponse.json({ error: 'Face fusion failed' }, { status: 500 });
+    }
+
+    return NextResponse.json({ output: mergedImage });
+  } catch (err: any) {
     console.error('Error generating fantasy image:', err);
-    return NextResponse.json({ error: 'Failed to generate fantasy image' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+function generatePromptFromAnswers(answers: string[]): string {
+  // Simple mapping logic — you can customize this however you like
+  return `A high-resolution, front-facing fantasy portrait of a ${
+    answers[2]
+  } in a ${answers[3]} outfit, in a beautiful ${answers[4]} setting, with a sense of ${
+    answers[5]
+  }, cinematic lighting, ultra-realistic, anime style`;
 }
