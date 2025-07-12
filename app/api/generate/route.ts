@@ -1,31 +1,38 @@
-import { NextResponse } from 'next/server';
-import { generateFantasyImage, mergeFace } from '../../../utils/replicate';
+import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary } from '../../../utils/cloudinary';
+import { runSDXL, runFaceFusion } from '../../../utils/replicate';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { answers, selfie } = await req.json();
 
     if (!answers || !selfie) {
-      return NextResponse.json({ error: 'Missing data' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing answers or selfie' }, { status: 400 });
     }
 
-    const prompt = `A majestic fantasy scene with ${answers.q2} in a ${answers.q3}, set in ${answers.q4}. Mood: ${answers.q5}, Style: ${answers.q6}`;
-    const fantasyImageUrl = await generateFantasyImage(prompt);
+    // 1. Generate fantasy image using SDXL
+    const prompt = `A stunning fantasy world with themes: ${answers.join(', ')}. Full body or upper body view of a heroic figure, cinematic lighting, highly detailed, ultra realistic, front-facing face clearly visible`;
+    const sdxlImageUrl = await runSDXL(prompt);
 
-    // Upload selfie to Cloudinary
+    // 2. Upload selfie to Cloudinary
     const selfieBuffer = Buffer.from(selfie.split(',')[1], 'base64');
-    const uploadedSelfie = await uploadToCloudinary(selfieBuffer);
+    const cloudinaryUpload = await uploadToCloudinary(selfieBuffer);
 
-    // Merge the face
-    const finalImageUrl = await mergeFace(fantasyImageUrl, uploadedSelfie.secure_url);
+    const selfieUrl = cloudinaryUpload.secure_url;
 
-    return NextResponse.json({
-      fantasyImage: fantasyImageUrl,
-      mergedImage: finalImageUrl,
+    if (!selfieUrl || !sdxlImageUrl) {
+      return NextResponse.json({ error: 'Image URLs missing' }, { status: 500 });
+    }
+
+    // 3. Run FaceFusion with SDXL image (target) and selfie (source)
+    const finalImageUrl = await runFaceFusion({
+      source: selfieUrl,
+      target: sdxlImageUrl,
     });
-  } catch (error) {
-    console.error('Error in /api/generate:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+
+    return NextResponse.json({ image: finalImageUrl });
+  } catch (err) {
+    console.error('Error generating fantasy image:', err);
+    return NextResponse.json({ error: 'Failed to generate fantasy image' }, { status: 500 });
   }
 }
