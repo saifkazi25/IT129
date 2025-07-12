@@ -1,94 +1,105 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
+import { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
+  const webcamRef = React.useRef<Webcam>(null);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const webcamRef = React.useRef<Webcam>(null);
   const router = useRouter();
 
   const capture = () => {
     const screenshot = webcamRef.current?.getScreenshot();
-    if (screenshot) setImage(screenshot);
+    if (screenshot) {
+      setImage(screenshot);
+      localStorage.setItem('selfie', screenshot);
+    }
   };
 
   const handleSubmit = async () => {
-    if (!image) return alert('Please capture a selfie first.');
-
-    const storedAnswers = localStorage.getItem('answers');
-    if (!storedAnswers) return alert('No answers found.');
-
-    const answers = JSON.parse(storedAnswers);
+    if (!image) return;
 
     setLoading(true);
 
     try {
+      const quizData = JSON.parse(localStorage.getItem('quizData') || '{}');
+
+      const formData = new FormData();
+      formData.append('image', dataURItoBlob(image));
+      formData.append('prompt', JSON.stringify(quizData));
+
       const res = await fetch('/api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          answers,
-          selfie: image,
-        }),
+        body: formData,
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem('fantasyImage', data.fantasyImage);
-        localStorage.setItem('mergedImage', data.mergedImage);
-        router.push('/result');
-      } else {
-        alert(data.error || 'Something went wrong');
-      }
+      const result = await res.json();
+      localStorage.setItem('fantasyImage', result.fantasyImage);
+      localStorage.setItem('mergedImage', result.mergedImage);
+      router.push('/result');
     } catch (err) {
-      console.error('Error submitting:', err);
-      alert('Failed to submit.');
+      console.error('Error submitting selfie:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const dataURItoBlob = (dataURI: string): Blob => {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+
+    return new Blob([ab], { type: mimeString });
+  };
+
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black">
-      <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-4">📸 Take a Selfie</h1>
 
-      {image ? (
-        <img src={image} alt="Selfie Preview" className="w-64 h-64 object-cover rounded-full" />
-      ) : (
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          className="w-64 h-64 rounded-lg"
-        />
-      )}
-
-      <div className="mt-4 flex gap-4">
-        {!image && (
+      {!image ? (
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            className="rounded-md border"
+          />
           <button
             onClick={capture}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Capture
           </button>
-        )}
-
-        {image && (
+        </>
+      ) : (
+        <>
+          <img src={image} alt="Captured selfie" className="rounded-md border w-64 h-auto" />
           <button
-            onClick={handleSubmit}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            disabled={loading}
+            onClick={() => setImage(null)}
+            className="mt-2 px-4 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
           >
-            {loading ? 'Creating Fantasy...' : 'Submit'}
+            Retake
           </button>
-        )}
-      </div>
-    </main>
+        </>
+      )}
+
+      <button
+        onClick={handleSubmit}
+        disabled={!image || loading}
+        className={`mt-6 px-6 py-2 rounded text-white ${
+          loading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+        }`}
+      >
+        {loading ? 'Generating...' : 'Submit & Generate'}
+      </button>
+    </div>
   );
 }
