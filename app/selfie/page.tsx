@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
-import type { default as WebcamType } from 'react-webcam';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<WebcamType | null>(null);
+  const webcamRef = useRef<typeof Webcam | null>(null); // ✅ FIXED HERE
   const [image, setImage] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -17,7 +16,7 @@ export default function SelfiePage() {
     if (savedAnswers) {
       setQuizAnswers(JSON.parse(savedAnswers));
     } else {
-      router.push('/'); // Redirect to quiz if answers missing
+      router.push('/'); // redirect if no quiz answers
     }
   }, [router]);
 
@@ -47,10 +46,10 @@ export default function SelfiePage() {
         localStorage.setItem('finalImage', data.finalImage);
         router.push('/result');
       } else {
-        alert('Failed to generate image.');
+        alert('Image generation failed');
       }
     } catch (err) {
-      console.error('Error submitting selfie:', err);
+      console.error('Error generating image:', err);
     } finally {
       setLoading(false);
     }
@@ -58,7 +57,7 @@ export default function SelfiePage() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">Take Your Selfie</h1>
+      <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
 
       {!image ? (
         <>
@@ -70,7 +69,7 @@ export default function SelfiePage() {
           />
           <button
             onClick={capture}
-            className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Capture Selfie
           </button>
@@ -84,7 +83,7 @@ export default function SelfiePage() {
           />
           <button
             onClick={() => setImage(null)}
-            className="mt-2 text-sm text-blue-600 underline"
+            className="mt-2 text-blue-500 underline"
           >
             Retake
           </button>
@@ -101,4 +100,3 @@ export default function SelfiePage() {
     </main>
   );
 }
-
