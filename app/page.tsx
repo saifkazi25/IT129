@@ -1,57 +1,70 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
-export default function QuizPage() {
+export default function ResultPage() {
+  const [fantasyImage, setFantasyImage] = useState<string | null>(null);
+  const [mergedImage, setMergedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [answers, setAnswers] = useState<string[]>(Array(7).fill(''));
 
-  const handleChange = (index: number, value: string) => {
-    const updatedAnswers = [...answers];
-    updatedAnswers[index] = value;
-    setAnswers(updatedAnswers);
-  };
+  useEffect(() => {
+    const generate = async () => {
+      try {
+        const storedAnswers = localStorage.getItem('answers');
+        const storedSelfie = localStorage.getItem('selfie');
 
-  const handleSubmit = () => {
-    const allAnswered = answers.every((a) => a.trim() !== '');
-    if (!allAnswered) {
-      alert('Please answer all questions!');
-      return;
-    }
+        if (!storedAnswers || !storedSelfie) {
+          alert('Missing data. Please complete the quiz and take a selfie.');
+          router.push('/');
+          return;
+        }
 
-    localStorage.setItem('quizAnswers', JSON.stringify(answers));
-    router.push('/selfie');
-  };
+        const answers = JSON.parse(storedAnswers);
+
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ answers, selfie: storedSelfie }),
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        setFantasyImage(result.fantasyImage);
+        setMergedImage(result.mergedImage);
+      } catch (error) {
+        console.error('Error generating fantasy image:', error);
+        alert('Something went wrong. Please try again.');
+        router.push('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    generate();
+  }, [router]);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      <h1 className="text-3xl font-bold mb-6">Infinite Tsukuyomi Quiz</h1>
-      {[
-        'What environment feels most magical to you?',
-        'Pick a city you dream of exploring.',
-        'Choose a role you’d love to embody.',
-        'What would you wear in that dream?',
-        'What kind of setting is it? (Forest, Sky, Space...)',
-        'What emotion do you seek in this fantasy?',
-        'What supernatural ability do you want?'
-      ].map((question, index) => (
-        <div key={index} className="mb-4 w-full max-w-md">
-          <label className="block mb-2">{question}</label>
-          <input
-            type="text"
-            className="w-full p-2 border border-gray-300 rounded"
-            value={answers[index]}
-            onChange={(e) => handleChange(index, e.target.value)}
-          />
-        </div>
-      ))}
-      <button
-        onClick={handleSubmit}
-        className="mt-4 bg-black text-white px-4 py-2 rounded"
-      >
-        Next
-      </button>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-6">🌌 Your Infinite Tsukuyomi</h1>
+      {loading ? (
+        <p>Generating your dream world...</p>
+      ) : mergedImage ? (
+        <img
+          src={mergedImage}
+          alt="Your fantasy world"
+          className="rounded shadow-lg max-w-full h-auto"
+        />
+      ) : (
+        <p>Image generation failed.</p>
+      )}
     </main>
   );
 }
