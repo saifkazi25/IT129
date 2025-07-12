@@ -3,10 +3,10 @@
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
-import type { WebcamProps } from 'react-webcam';
+import type { Webcam as WebcamComponent } from 'react-webcam';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<WebcamComponent | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
