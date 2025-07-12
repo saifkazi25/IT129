@@ -8,8 +8,7 @@ type PredictionResult = {
   output: string[] | string;
 };
 
-// ✅ STEP 1: Generate fantasy image using SDXL
-async function generateFantasyImage(prompt: string) {
+export async function generateFantasyImage(prompt: string) {
   const prediction = await replicate.run(
     "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
     {
@@ -35,8 +34,7 @@ async function generateFantasyImage(prompt: string) {
   return Array.isArray(output) ? output[0] : output;
 }
 
-// ✅ STEP 2: Merge face using FaceFusion
-async function mergeFace(selfieUrl: string, fantasyImageUrl: string) {
+export async function mergeFace(fantasyImageUrl: string, selfieUrl: string) {
   const prediction = await replicate.run(
     "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
     {
@@ -51,5 +49,3 @@ async function mergeFace(selfieUrl: string, fantasyImageUrl: string) {
   const output = prediction.output;
   return Array.isArray(output) ? output[0] : output;
 }
-
-export { generateFantasyImage, mergeFace };
