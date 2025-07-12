@@ -2,10 +2,11 @@
 
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Webcam, { Webcam as ReactWebcam } from 'react-webcam';
+import Webcam from 'react-webcam';
+import type { WebcamProps } from 'react-webcam';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<ReactWebcam>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,38 +19,12 @@ export default function SelfiePage() {
     }
   };
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!image) {
       alert('Please take a selfie before continuing.');
       return;
     }
-
-    setLoading(true);
-    try {
-      const answers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
-
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          answers,
-          selfie: image,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`Request failed: ${response.statusText}`);
-
-      const data = await response.json();
-      localStorage.setItem('fantasyImage', data.output);
-      router.push('/result');
-    } catch (err) {
-      console.error('Error generating fantasy image:', err);
-      alert('Something went wrong.');
-    } finally {
-      setLoading(false);
-    }
+    router.push('/result');
   };
 
   return (
