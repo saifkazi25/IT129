@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
+import Webcam from 'react-webcam';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<React.RefObject<typeof Webcam> | any>(null);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -18,50 +18,58 @@ export default function SelfiePage() {
     }
   };
 
-  const handleSubmit = () => {
-    if (image) {
-      router.push('/result');
-    } else {
-      alert('Please take a selfie first!');
+  const handleContinue = () => {
+    if (!image) {
+      alert('Please take a selfie before continuing.');
+      return;
     }
+    router.push('/result');
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-6 bg-white text-black p-4">
-      <h1 className="text-3xl font-bold">📸 Take a Selfie</h1>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-4">📸 Capture Your Selfie</h1>
 
       {!image ? (
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          width={320}
-          height={320}
-          className="rounded-md border"
-        />
-      ) : (
-        <img src={image} alt="Selfie" className="rounded-md border w-80 h-80 object-cover" />
-      )}
-
-      <div className="flex gap-4">
-        {!image && (
+        <div className="mb-4">
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            className="rounded-md shadow-lg w-full max-w-sm"
+          />
           <button
             onClick={capture}
-            className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Capture Selfie
           </button>
-        )}
-
-        {image && (
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <img
+            src={image}
+            alt="Captured selfie"
+            className="rounded-md shadow-lg w-full max-w-sm"
+          />
           <button
-            onClick={handleSubmit}
-            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={() => setImage(null)}
+            className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
           >
-            Generate Image
+            Retake
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {image && (
+        <button
+          onClick={handleContinue}
+          disabled={loading}
+          className="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded"
+        >
+          {loading ? 'Processing...' : 'Continue'}
+        </button>
+      )}
     </main>
   );
 }
