@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function SelfiePage() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // ✅ FIXED TYPING HERE
   const [image, setImage] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,4 +55,3 @@ export default function SelfiePage() {
     </div>
   );
 }
-
