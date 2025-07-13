@@ -5,15 +5,12 @@ import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<React.ElementRef<typeof Webcam>>(null);
+  const webcamRef = useRef<Webcam>(null);
   const [error, setError] = useState('');
   const router = useRouter();
 
   const capture = () => {
-    const imageSrc =
-      webcamRef.current && 'getScreenshot' in webcamRef.current
-        ? (webcamRef.current as any).getScreenshot()
-        : null;
+    const imageSrc = webcamRef.current?.getScreenshot();
 
     if (!imageSrc) {
       setError('Failed to capture image. Please try again.');
