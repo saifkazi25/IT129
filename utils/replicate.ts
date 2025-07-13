@@ -50,10 +50,13 @@ export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promi
 
   console.log('🧪 Raw FaceFusion output:', output);
 
+  if (typeof output === 'string') {
+    return output;
+  }
+
   if (Array.isArray(output) && typeof output[0] === 'string') {
     return output[0];
   }
 
   throw new Error('Invalid FaceFusion output');
 }
-
