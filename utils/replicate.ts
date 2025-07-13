@@ -19,9 +19,10 @@ export async function runSDXL(prompt: string): Promise<string> {
         guidance_scale: 7.5,
         apply_watermark: false,
         high_noise_frac: 0.8,
-        negative_prompt: '',
         prompt_strength: 0.8,
         num_inference_steps: 25,
+        negative_prompt:
+          'nsfw, nudity, nude, suggestive, revealing, inappropriate, cleavage, skin, sexual, erotic, underwear',
       },
     }
   );
@@ -65,4 +66,5 @@ export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promi
     throw err;
   }
 }
+
 
