@@ -5,12 +5,15 @@ import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<React.RefObject<any> | null>(null);
   const [error, setError] = useState('');
   const router = useRouter();
 
   const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
+    const imageSrc =
+      webcamRef.current && 'getScreenshot' in webcamRef.current
+        ? (webcamRef.current as any).getScreenshot()
+        : null;
 
     if (!imageSrc) {
       setError('Failed to capture image. Please try again.');
@@ -26,7 +29,7 @@ export default function WebcamCapture() {
       <h1 className="text-2xl font-bold">📸 Take Your Selfie</h1>
       <Webcam
         audio={false}
-        ref={webcamRef}
+        ref={webcamRef as any}
         screenshotFormat="image/jpeg"
         width={320}
         videoConstraints={{ facingMode: 'user' }}
