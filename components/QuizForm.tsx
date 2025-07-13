@@ -4,19 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const questions = [
-  "You wake up in a world where anything is possible. What's the first thing you notice?",
-  "You're offered a portal to anywhere. What do you see through it?",
-  "What would your outfit look like in this fantasy world?",
-  "You are granted one special ability in this world. What is it?",
-  "Pick the kind of environment you feel most drawn to.",
-  "What kind of creatures or beings would you interact with?",
-  "What emotion do you want to feel the most in this world?"
+  "What time of day do you feel most alive?",
+  "Pick a destination you'd teleport to right now.",
+  "What kind of hero are you?",
+  "Your dream outfit?",
+  "Ideal environment for an adventure?",
+  "What emotion drives your fantasy world?",
+  "What supernatural power would you pick?"
 ];
 
 export default function QuizForm() {
-  const [answers, setAnswers] = useState(Array(questions.length).fill(''));
-  const [error, setError] = useState('');
   const router = useRouter();
+  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
 
   const handleChange = (index: number, value: string) => {
     const newAnswers = [...answers];
@@ -26,38 +25,25 @@ export default function QuizForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (answers.some(answer => answer.trim() === '')) {
-      setError('Please answer all the questions before proceeding.');
-      return;
-    }
-
     localStorage.setItem('quizAnswers', JSON.stringify(answers));
     router.push('/selfie');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6 text-center">🌀 Enter the Infinite Tsukuyomi</h1>
-      {questions.map((q, index) => (
-        <div key={index} className="mb-4">
-          <label className="block mb-2 font-semibold">{q}</label>
+    <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
+      {questions.map((question, index) => (
+        <div key={index}>
+          <label className="block mb-1 text-sm font-semibold">{question}</label>
           <input
             type="text"
-            className="w-full border border-gray-300 rounded p-2"
+            className="w-full border border-gray-300 px-3 py-2 rounded"
             value={answers[index]}
             onChange={(e) => handleChange(index, e.target.value)}
             required
           />
         </div>
       ))}
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <button
-        type="submit"
-        className="w-full bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition"
-      >
-        Next: Upload Your Selfie
-      </button>
+      <button type="submit" className="w-full bg-black text-white py-2 rounded">Next: Take Selfie</button>
     </form>
   );
 }
