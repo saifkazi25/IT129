@@ -32,31 +32,37 @@ export async function runSDXL(prompt: string): Promise<string> {
     return output[0];
   }
 
-  throw new Error('Invalid SDXL output');
+  throw new Error('Invalid SDXL output format');
 }
 
 export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promise<string> {
-  const output = await replicate.run(
-    'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
-    {
-      input: {
-        user_image: sourceUrl,
-        template_image: targetUrl,
-        batch_size: 1,
-        use_enhancer: true,
-      },
+  try {
+    const output = await replicate.run(
+      'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
+      {
+        input: {
+          user_image: sourceUrl,
+          template_image: targetUrl,
+          batch_size: 1,
+          use_enhancer: true,
+        },
+      }
+    );
+
+    console.log('🧪 Raw FaceFusion output:', output);
+
+    if (typeof output === 'string') {
+      return output;
     }
-  );
 
-  console.log('🧪 Raw FaceFusion output:', output);
+    if (Array.isArray(output) && typeof output[0] === 'string') {
+      return output[0];
+    }
 
-  if (typeof output === 'string') {
-    return output;
+    throw new Error('Invalid FaceFusion output format');
+  } catch (err: any) {
+    console.error('❌ Error in runFaceFusion:', err?.message || err);
+    throw err;
   }
-
-  if (Array.isArray(output) && typeof output[0] === 'string') {
-    return output[0];
-  }
-
-  throw new Error('Invalid FaceFusion output');
 }
+
