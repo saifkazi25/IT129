@@ -2,10 +2,11 @@
 
 import React, { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
+import type { WebcamProps } from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<React.ElementRef<typeof Webcam>>(null);
   const [error, setError] = useState('');
   const router = useRouter();
 
