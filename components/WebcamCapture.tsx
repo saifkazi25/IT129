@@ -1,36 +1,60 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
 
-export default function WebcamCapture({ onCapture }: { onCapture: (img: string) => void }) {
-  const webcamRef = useRef<any>(null); // ✅ FIXED: replaced <Webcam> with <any>
-  const [captured, setCaptured] = useState<string | null>(null);
+export default function WebcamCapture() {
+  const webcamRef = useRef<Webcam>(null);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setCaptured(imageSrc);
-      onCapture(imageSrc);
+    if (!imageSrc) {
+      setError('⚠️ Could not capture image. Please allow camera access.');
+      return;
     }
+
+    // ✅ Store selfie in localStorage
+    localStorage.setItem('selfie', imageSrc);
+    router.push('/result');
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-white text-black p-4">
+      <h1 className="text-2xl font-bold mb-4">📸 Capture Your Selfie</h1>
+
       <Webcam
-        audio={false}
         ref={webcamRef}
+        audio={false}
         screenshotFormat="image/jpeg"
-        className="rounded border"
-        videoConstraints={{ facingMode: 'user' }}
+        videoConstraints={{
+          width: 720,
+          height: 720,
+          facingMode: 'user',
+        }}
+        className="rounded-xl shadow-md"
       />
+
+      {error && <p className="text-red-600 mt-2">{error}</p>}
+
       <button
         onClick={capture}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+        className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg"
       >
-        Capture
+        ✅ Capture & Continue
       </button>
-      {captured && <img src={captured} alt="Captured" className="mt-4 rounded shadow" />}
-    </div>
+
+      <button
+        onClick={() => {
+          localStorage.removeItem('quizAnswers');
+          window.location.href = '/';
+        }}
+        className="mt-3 text-blue-600 underline"
+      >
+        🔁 Restart Quiz
+      </button>
+    </main>
   );
 }
