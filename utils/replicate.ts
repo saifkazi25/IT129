@@ -52,7 +52,6 @@ export async function runSDXL(prompt: string): Promise<string> {
       err?.toString().includes('NSFW content detected')
     ) {
       console.warn('⚠️ NSFW block — retrying with slight variation...');
-      // Add a safe fallback tweak
       const fallbackPrompt = cleanedPrompt + ' wearing armor, peaceful tone';
       const output = await replicate.run(
         'stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc',
@@ -86,5 +85,33 @@ export async function runSDXL(prompt: string): Promise<string> {
   }
 }
 
+export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promise<string> {
+  try {
+    const output = await replicate.run(
+      'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
+      {
+        input: {
+          user_image: sourceUrl,
+          template_image: targetUrl,
+          batch_size: 1,
+          use_enhancer: true,
+        },
+      }
+    );
 
+    console.log('🧪 Raw FaceFusion output:', output);
 
+    if (typeof output === 'string') {
+      return output;
+    }
+
+    if (Array.isArray(output) && typeof output[0] === 'string') {
+      return output[0];
+    }
+
+    throw new Error('Invalid FaceFusion output format');
+  } catch (err: any) {
+    console.error('❌ Error in runFaceFusion:', err?.message || err);
+    throw err;
+  }
+}
