@@ -4,49 +4,18 @@ import { runSDXL, runFaceFusion } from '../../../utils/replicate';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { answers, selfie } = body;
+    const { image, quizAnswers } = await req.json();
 
-    if (!answers || !selfie) {
-      return NextResponse.json({ error: 'Missing answers or selfie' }, { status: 400 });
-    }
+    const prompt = `A majestic fantasy scene showing a ${quizAnswers[2]} in a ${quizAnswers[4]} wearing ${quizAnswers[3]}. Mood: ${quizAnswers[5]}. Style: epic anime. Front-facing full-body.`;
+    const sdxlImage = await runSDXL(prompt);
 
-    // Upload selfie to Cloudinary to get a public URL
-    const base64 = selfie.split(',')[1];
-    const buffer = Buffer.from(base64, 'base64');
-    const cloudinaryUpload = await uploadToCloudinary(buffer);
-    const selfieUrl = cloudinaryUpload.secure_url;
+    const selfieUrl = await uploadToCloudinary(image);
+    const finalImage = await runFaceFusion(sdxlImage, selfieUrl);
 
-    // Generate fantasy image using SDXL
-    const prompt = generatePromptFromAnswers(answers);
-    const fantasyImage = await runSDXL(prompt);
-
-    if (!fantasyImage) {
-      return NextResponse.json({ error: 'SDXL image generation failed' }, { status: 500 });
-    }
-
-    // Merge selfie with fantasy image using FaceFusion
-    const mergedImage = await runFaceFusion({
-      target: fantasyImage,
-      source: selfieUrl,
-    });
-
-    if (!mergedImage) {
-      return NextResponse.json({ error: 'Face fusion failed' }, { status: 500 });
-    }
-
-    return NextResponse.json({ output: mergedImage });
-  } catch (err: any) {
-    console.error('Error generating fantasy image:', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ image: finalImage });
+  } catch (error) {
+    console.error('[ERROR IN /api/generate]', error);
+    return NextResponse.json({ error: 'Image generation failed.' }, { status: 500 });
   }
 }
 
-function generatePromptFromAnswers(answers: string[]): string {
-  // Simple mapping logic — you can customize this however you like
-  return `A high-resolution, front-facing fantasy portrait of a ${
-    answers[2]
-  } in a ${answers[3]} outfit, in a beautiful ${answers[4]} setting, with a sense of ${
-    answers[5]
-  }, cinematic lighting, ultra-realistic, anime style`;
-}
