@@ -1,4 +1,3 @@
-// utils/replicate.ts
 import Replicate from 'replicate';
 
 const replicate = new Replicate({
@@ -26,7 +25,14 @@ export async function runSDXL(prompt: string): Promise<string> {
       },
     }
   );
-  return (output as string[])[0];
+
+  console.log('🧪 Raw SDXL output:', output);
+
+  if (Array.isArray(output) && typeof output[0] === 'string') {
+    return output[0];
+  }
+
+  throw new Error('Invalid SDXL output');
 }
 
 export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promise<string> {
@@ -41,5 +47,13 @@ export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promi
       },
     }
   );
-  return (output as string[])[0];
+
+  console.log('🧪 Raw FaceFusion output:', output);
+
+  if (Array.isArray(output) && typeof output[0] === 'string') {
+    return output[0];
+  }
+
+  throw new Error('Invalid FaceFusion output');
 }
+
