@@ -9,16 +9,16 @@ export default function ResultPage() {
 
   useEffect(() => {
     const generateImage = async () => {
+      const storedQuiz = localStorage.getItem('quizAnswers');
+      const storedSelfie = localStorage.getItem('selfie');
+
+      // ✅ Enforce full flow — redirect if data is missing
+      if (!storedQuiz || !storedSelfie) {
+        window.location.href = '/';
+        return;
+      }
+
       try {
-        const storedQuiz = localStorage.getItem('quizAnswers');
-        const storedSelfie = localStorage.getItem('selfie');
-
-        if (!storedQuiz || !storedSelfie) {
-          setError('Missing quiz answers or selfie.');
-          setLoading(false);
-          return;
-        }
-
         const quizAnswers = JSON.parse(storedQuiz);
 
         const res = await fetch('/api/generate', {
@@ -61,8 +61,16 @@ export default function ResultPage() {
             alt="Fantasy Result"
             className="max-w-full h-auto rounded-2xl shadow-lg"
           />
+          <a
+            href={finalImage}
+            download="your-fantasy-image.png"
+            className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            ⬇️ Download Image
+          </a>
         </div>
       )}
     </main>
   );
 }
+
