@@ -24,6 +24,5 @@ export async function runFaceFusion(targetUrl: string, sourceUrl: string): Promi
       },
     }
   );
-  return output as string;
+  return (output as string[])[0]; // ✅ FIXED
 }
-
