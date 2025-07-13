@@ -9,12 +9,10 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try to load the final FaceFusion image from localStorage
     const mergedImage = localStorage.getItem('mergedImage');
     if (mergedImage) {
       setFinalImageUrl(mergedImage);
     } else {
-      // Fallback: If no image found, send user back to quiz
       router.push('/');
     }
     setLoading(false);
