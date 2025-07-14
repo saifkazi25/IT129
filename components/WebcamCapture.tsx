@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // Fix: Avoid TS namespace error
   const router = useRouter();
 
   const [uploading, setUploading] = useState(false);
@@ -19,7 +19,6 @@ export default function WebcamCapture() {
       return;
     }
 
-    // Load quiz answers from localStorage
     const quizAnswersRaw = localStorage.getItem('quizAnswers');
     if (!quizAnswersRaw) {
       setError('Missing quiz answers. Please retake the quiz.');
@@ -59,7 +58,4 @@ export default function WebcamCapture() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
-      <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
-
-      <Webcam
-        audio=
+      <h1 className="text-2xl font-bold mb-4">📸 Take Your Self
