@@ -1,11 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import Webcam from 'react-webcam';
+import Webcam, { WebcamProps } from 'react-webcam'; // ✅ correct import
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<InstanceType<typeof Webcam>>(null); // ✅ correct typing
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -34,11 +34,10 @@ export default function WebcamCapture() {
         }),
       });
 
-      if (!response.ok) throw new Error('Generation failed');
+      if (!response.ok) throw new Error('Image generation failed');
 
       const { mergedImage } = await response.json();
 
-      // Save result in localStorage and go to result page
       localStorage.setItem('mergedImage', mergedImage);
       router.push('/result');
     } catch (err: any) {
