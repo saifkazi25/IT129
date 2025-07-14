@@ -1,59 +1,55 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-interface ResultDisplayProps {
-  answers: string[];
-  selfieImage: string;
-}
+export default function ResultPage() {
+  const router = useRouter();
+  const [img, setImg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-export default function ResultDisplay({ answers, selfieImage }: ResultDisplayProps) {
-  const [mergedImage, setMergedImage] = useState<string | null>(null);
-  const [isMerging, setIsMerging] = useState(false);
+  useEffect(() => {
+    const answersRaw = localStorage.getItem('quizAnswers');
+    const selfie = localStorage.getItem('selfie');
 
-  const handleMerge = async () => {
-    setIsMerging(true);
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ answers, selfieImage }),
-      });
-
-      const data = await response.json();
-      setMergedImage(data.outputImageUrl);
-    } catch (error) {
-      console.error('Error merging image:', error);
-    } finally {
-      setIsMerging(false);
+    if (!answersRaw || !selfie) {
+      router.push('/');
+      return;
     }
-  };
+
+    const run = async () => {
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quizAnswers: JSON.parse(answersRaw),
+            image: selfie,
+          }),
+        });
+        if (!res.ok) throw new Error('Generation failed');
+        const { mergedImage } = await res.json();
+        setImg(mergedImage);
+      } catch (e: any) {
+        setErr(e.message || 'Unexpected error');
+      }
+    };
+
+    run();
+  }, [router]);
+
+  if (err) return <p className="text-red-600 p-8">{err}</p>;
+  if (!img) return <p className="p-8">⏳ Crafting your fantasy…</p>;
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <p className="text-lg">Your Fantasy World Based on Your Answers:</p>
-      <ul className="text-sm text-left list-disc">
-        {answers.map((answer, index) => (
-          <li key={index}>{answer}</li>
-        ))}
-      </ul>
-      <img src={selfieImage} alt="Your Selfie" className="w-48 h-48 rounded-full mt-4 border" />
+    <main className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-4">
+      <img src={img} alt="Infinite Tsukuyomi" className="max-w-full rounded-2xl shadow-lg" />
       <button
-        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        onClick={handleMerge}
-        disabled={isMerging}
+        onClick={() => { localStorage.clear(); router.push('/'); }}
+        className="mt-6 text-blue-400 underline"
       >
-        {isMerging ? 'Merging...' : 'Merge My Face'}
+        🔁 Start Again
       </button>
-      {mergedImage && (
-        <img
-          src={mergedImage}
-          alt="Merged Fantasy Image"
-          className="mt-6 w-full max-w-md border rounded"
-        />
-      )}
-    </div>
+    </main>
   );
 }
