@@ -1,59 +1,72 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  // ⬇️  Correct generic for the ref
+  const webcamRef = useRef<React.ElementRef<typeof Webcam>>(null);
   const router = useRouter();
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const captureAndContinue = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-
-    if (!imageSrc) {
-      setError('Could not capture selfie. Check camera permissions.');
+  const handleCapture = async () => {
+    const selfie = webcamRef.current?.getScreenshot();
+    if (!selfie) {
+      setError('Could not capture selfie.');
       return;
     }
 
-    // 💾 store latest selfie (base64)
-    localStorage.setItem('selfie', imageSrc);
+    const answersRaw = localStorage.getItem('quizAnswers');
+    if (!answersRaw) {
+      router.push('/');
+      return;
+    }
 
-    // go generate result
-    router.push('/result');
+    setBusy(true);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizAnswers: JSON.parse(answersRaw),
+          image: selfie,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Generation failed');
+      const { mergedImage } = await res.json();
+
+      localStorage.setItem('mergedImage', mergedImage);
+      router.push('/result');
+    } catch (e: any) {
+      setError(e.message || 'Unexpected error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4 bg-white text-black p-4">
-      <h1 className="text-2xl font-bold">📸 Capture Your Selfie</h1>
-
+    <main className="flex flex-col items-center justify-center gap-4 min-h-screen p-4">
       <Webcam
         ref={webcamRef}
         audio={false}
         screenshotFormat="image/jpeg"
         videoConstraints={{ facingMode: 'user', width: 720, height: 720 }}
-        className="rounded-xl shadow-md"
+        className="rounded-xl shadow"
       />
 
+      <button
+        onClick={handleCapture}
+        disabled={busy}
+        className="px-6 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50"
+      >
+        {busy ? 'Generating…' : 'Capture & Generate'}
+      </button>
+
       {error && <p className="text-red-600">{error}</p>}
-
-      <button
-        onClick={captureAndContinue}
-        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-      >
-        Capture &amp; See Result
-      </button>
-
-      <button
-        onClick={() => {
-          localStorage.clear();
-          router.push('/');
-        }}
-        className="text-blue-600 underline mt-2"
-      >
-        🔁 Restart Quiz
-      </button>
     </main>
   );
 }
+
