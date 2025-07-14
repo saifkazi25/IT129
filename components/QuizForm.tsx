@@ -1,70 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 const questions = [
-  'What time of day makes you feel most alive?',
-  'Pick a city you’d love to explore.',
-  'Choose the role you play in a fantasy world:',
-  'Describe your outfit in that world:',
-  'What environment surrounds you?',
-  'What’s the overall vibe or mood?',
-  'If you had one power, what would it be?',
+  'What kind of world excites you the most?',
+  'Pick a city or landscape you dream about.',
+  'Choose a role you’d love to live as.',
+  'What kind of outfit would you wear in this fantasy?',
+  'Pick a setting you’d want around you.',
+  'What’s the vibe or mood of your ideal world?',
+  'Would you rather fly, fight, or explore?',
 ];
 
 export default function QuizForm() {
-  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
+  const [answers, setAnswers] = useState(Array(questions.length).fill(''));
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  /** update individual answer */
-  const handleChange = (idx: number, val: string) => {
-    const copy = [...answers];
-    copy[idx] = val;
-    setAnswers(copy);
+  const handleChange = (index: number, value: string) => {
+    const updated = [...answers];
+    updated[index] = value;
+    setAnswers(updated);
   };
 
-  /** submit answers and move on */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (answers.some((a) => a.trim() === '')) {
-      alert('Please answer every question 🚀');
+      setError('Please answer all questions before continuing.');
       return;
     }
 
-    // save latest answers
     localStorage.setItem('quizAnswers', JSON.stringify(answers));
-
     router.push('/selfie');
   };
 
-  /* ----------  JSX  ---------- */
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-4 bg-white text-black">
-      <h1 className="text-3xl font-bold">🌀 Infinite Tsukuyomi Quiz</h1>
-
-      <form onSubmit={handleSubmit} className="w-full max-w-lg space-y-4">
-        {questions.map((q, i) => (
-          <div key={i}>
-            <label className="block font-semibold mb-1">{q}</label>
-            <input
-              type="text"
-              value={answers[i]}
-              onChange={(e) => handleChange(i, e.target.value)}
-              className="w-full border rounded-lg p-2"
-              required
-            />
-          </div>
-        ))}
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          Next ➡️ Take Selfie
-        </button>
-      </form>
-    </main>
+    <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-6 space-y-6">
+      <h1 className="text-3xl font-bold text-center">✨ Enter Your Dream World</h1>
+      {questions.map((q, i) => (
+        <div key={i}>
+          <label className="block font-semibold mb-2">{q}</label>
+          <input
+            type="text"
+            value={answers[i]}
+            onChange={(e) => handleChange(i, e.target.value)}
+            className="w-full px-3 py-2 rounded border text-black"
+          />
+        </div>
+      ))}
+      {error && <p className="text-red-500 text-center">{error}</p>}
+      <button
+        type="submit"
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+      >
+        Continue to Selfie
+      </button>
+    </form>
   );
 }
+
