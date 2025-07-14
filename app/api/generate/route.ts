@@ -1,45 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToCloudinary } from '../../../utils/cloudinary';
-import { runSDXL, runFaceFusion } from '../../../utils/replicate';
+import { uploadImageToCloudinary } from '../../../utils/cloudinary';
+import { generateFantasyImage, mergeFaceWithFantasy } from '../../../utils/replicate';
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, quizAnswers } = await req.json();
+    const formData = await req.formData();
+    const quizAnswers = JSON.parse(formData.get('quizAnswers') as string);
+    const selfieFile = formData.get('selfie') as File;
 
-    if (!image || !Array.isArray(quizAnswers) || quizAnswers.length < 7) {
-      return NextResponse.json(
-        { error: 'Missing selfie or quiz answers.' },
-        { status: 400 }
-      );
+    if (!quizAnswers || !selfieFile) {
+      return NextResponse.json({ error: 'Missing quiz answers or selfie' }, { status: 400 });
     }
 
-    // Build the fantasy prompt
-    const prompt = `A majestic fantasy scene showing a ${quizAnswers[2]} `
-      + `in a ${quizAnswers[4]} wearing ${quizAnswers[3]}. `
+    console.log('📥 Received quizAnswers:', quizAnswers);
+    const selfieArrayBuffer = await selfieFile.arrayBuffer();
+    const selfieBuffer = Buffer.from(selfieArrayBuffer);
+    console.log('📷 Received image length:', selfieBuffer.length);
+
+    // Final Prompt
+    let prompt = `A majestic fantasy scene showing a ${quizAnswers[2]} in a ${quizAnswers[4]} wearing ${quizAnswers[3]}. `
       + `Mood: ${quizAnswers[5]}. Style: epic anime. Front-facing full-body.`;
 
     console.log('🧠 Prompt:', prompt);
 
-    // 1️⃣ Generate fantasy background
-    const sdxlImage = await runSDXL(prompt);
-    console.log('🎨 SDXL:', sdxlImage);
+    let sdxlImageUrl;
+    try {
+      const output = await generateFantasyImage(prompt);
+      sdxlImageUrl = output[0];
+    } catch (err: any) {
+      if (err.message?.includes('NSFW')) {
+        console.warn('⚠️ NSFW block — retrying with slight variation...');
+        const safePrompt = prompt + ' Safe for work. No nudity. Fully clothed. Family friendly.';
+        const output = await generateFantasyImage(safePrompt);
+        sdxlImageUrl = output[0];
+      } else {
+        console.error('[ERROR /api/generate]', err);
+        return NextResponse.json({ error: 'Image generation failed.' }, { status: 500 });
+      }
+    }
 
-    // 2️⃣ Upload selfie
-    const selfieUrl = await uploadToCloudinary(image);
-    console.log('☁️ Cloudinary selfie:', selfieUrl);
+    console.log('🎨 SDXL Image generated:', sdxlImageUrl);
 
-    // 3️⃣ Face-fuse
-    const mergedImage = await runFaceFusion(sdxlImage, selfieUrl);
-    console.log('🧬 Final merged:', mergedImage);
+    const selfieUrl = await uploadImageToCloudinary(selfieBuffer);
+    console.log('☁️ Selfie uploaded to Cloudinary:', selfieUrl);
 
-    // ✅ Return under the key the front-end expects
+    const mergedImage = await mergeFaceWithFantasy(selfieUrl, sdxlImageUrl);
+    console.log('🧬 Final Fused Image:', mergedImage);
+
     return NextResponse.json({ mergedImage });
-  } catch (err: any) {
-    console.error('[ERROR /api/generate]', err);
-    return NextResponse.json(
-      { error: 'Image generation failed.' },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error('[ERROR IN /api/generate]', err);
+    return NextResponse.json({ error: 'Server error during image generation' }, { status: 500 });
   }
 }
-
