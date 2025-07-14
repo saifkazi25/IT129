@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const questions = [
@@ -17,28 +17,29 @@ export default function QuizForm() {
   const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
   const router = useRouter();
 
+  /** update individual answer */
   const handleChange = (idx: number, val: string) => {
     const copy = [...answers];
     copy[idx] = val;
     setAnswers(copy);
   };
 
+  /** submit answers and move on */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // simple validation
     if (answers.some((a) => a.trim() === '')) {
       alert('Please answer every question 🚀');
       return;
     }
 
-    // 💾 store latest answers
+    // save latest answers
     localStorage.setItem('quizAnswers', JSON.stringify(answers));
 
-    // go to selfie step
     router.push('/selfie');
   };
 
+  /* ----------  JSX  ---------- */
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-4 bg-white text-black">
       <h1 className="text-3xl font-bold">🌀 Infinite Tsukuyomi Quiz</h1>
@@ -51,4 +52,19 @@ export default function QuizForm() {
               type="text"
               value={answers[i]}
               onChange={(e) => handleChange(i, e.target.value)}
-              cl
+              className="w-full border rounded-lg p-2"
+              required
+            />
+          </div>
+        ))}
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+        >
+          Next ➡️ Take Selfie
+        </button>
+      </form>
+    </main>
+  );
+}
