@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // ✅ Fix: use `any` instead of `Webcam` type
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -46,13 +46,13 @@ export default function WebcamCapture() {
 
       const data = await res.json();
 
-      // ✅ Store merged image in localStorage for result page
+      // ✅ Store merged image in localStorage
       localStorage.setItem('mergedImage', data.mergedImage);
 
-      // ✅ Redirect to result page
+      // ✅ Redirect to result
       router.push('/result');
     } catch (err: any) {
-      console.error('Error:', err);
+      console.error('❌ Error:', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setUploading(false);
@@ -77,36 +77,12 @@ export default function WebcamCapture() {
       </div>
 
       <button
-        onCl
-      // store for /result page
-      localStorage.setItem('mergedImage', mergedImage);
-      router.push('/result');
-    } catch (e: any) {
-      setError(e.message || 'Unexpected error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <main className="flex flex-col items-center justify-center gap-4 min-h-screen p-4">
-      <Webcam
-        ref={webcamRef}
-        audio={false}
-        screenshotFormat="image/jpeg"
-        videoConstraints={{ facingMode: 'user', width: 720, height: 720 }}
-        className="rounded-xl shadow"
-      />
-
-      <button
         onClick={handleCapture}
-        disabled={busy}
-        className="px-6 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50"
+        disabled={uploading}
+        className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-2xl shadow-md"
       >
-        {busy ? 'Generating…' : 'Capture & Generate'}
+        {uploading ? 'Generating Your Fantasy...' : 'Capture & Enter Fantasy'}
       </button>
-
-      {error && <p className="text-red-600">{error}</p>}
     </main>
   );
 }
