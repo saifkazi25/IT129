@@ -6,35 +6,39 @@ export async function POST(req: NextRequest) {
   try {
     const { image, quizAnswers } = await req.json();
 
-    console.log('📥 Received quizAnswers:', quizAnswers);
-    console.log('📷 Received image length:', image?.length);
-
-    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length < 7) {
-      throw new Error('Invalid or incomplete quizAnswers');
+    if (!image || !Array.isArray(quizAnswers) || quizAnswers.length < 7) {
+      return NextResponse.json(
+        { error: 'Missing selfie or quiz answers.' },
+        { status: 400 }
+      );
     }
 
-    if (!image || typeof image !== 'string') {
-      throw new Error('Invalid or missing selfie image');
-    }
+    // Build the fantasy prompt
+    const prompt = `A majestic fantasy scene showing a ${quizAnswers[2]} `
+      + `in a ${quizAnswers[4]} wearing ${quizAnswers[3]}. `
+      + `Mood: ${quizAnswers[5]}. Style: epic anime. Front-facing full-body.`;
 
-    const prompt = `A majestic fantasy scene showing a ${quizAnswers[2]} in a ${quizAnswers[4]} wearing ${quizAnswers[3]}. Mood: ${quizAnswers[5]}. Style: epic anime. Front-facing full-body.`;
+    console.log('🧠 Prompt:', prompt);
 
-    console.log('🧠 Final Prompt:', prompt);
-
+    // 1️⃣ Generate fantasy background
     const sdxlImage = await runSDXL(prompt);
-    console.log('🎨 SDXL Image generated:', sdxlImage);
+    console.log('🎨 SDXL:', sdxlImage);
 
+    // 2️⃣ Upload selfie
     const selfieUrl = await uploadToCloudinary(image);
-    console.log('☁️ Selfie uploaded to Cloudinary:', selfieUrl);
+    console.log('☁️ Cloudinary selfie:', selfieUrl);
 
-    const finalImage = await runFaceFusion(sdxlImage, selfieUrl);
-    console.log('🧬 Final Fused Image:', finalImage);
+    // 3️⃣ Face-fuse
+    const mergedImage = await runFaceFusion(sdxlImage, selfieUrl);
+    console.log('🧬 Final merged:', mergedImage);
 
-    return NextResponse.json({ image: finalImage });
-  } catch (error: any) {
-    console.error('[ERROR IN /api/generate]', error);
-    return NextResponse.json({ error: error.message || 'Image generation failed.' }, { status: 500 });
+    // ✅ Return under the key the front-end expects
+    return NextResponse.json({ mergedImage });
+  } catch (err: any) {
+    console.error('[ERROR /api/generate]', err);
+    return NextResponse.json(
+      { error: 'Image generation failed.' },
+      { status: 500 }
+    );
   }
 }
-
-
