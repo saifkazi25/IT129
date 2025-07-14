@@ -1,72 +1,65 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import Webcam, { WebcamProps } from 'react-webcam'; // ✅ correct import
+import { useCallback, useRef, useState } from 'react';
+import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<InstanceType<typeof Webcam>>(null); // ✅ correct typing
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
+
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  const capture = async () => {
-    if (!webcamRef.current) return;
-
-    const imageSrc = webcamRef.current.getScreenshot();
+  const capture = useCallback(async () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
 
     if (!imageSrc) {
-      setError('Could not capture image');
+      setError('Failed to capture selfie. Please try again.');
       return;
     }
 
-    setUploading(true);
-    setError('');
+    // Load quiz answers from localStorage
+    const quizAnswersRaw = localStorage.getItem('quizAnswers');
+    if (!quizAnswersRaw) {
+      setError('Missing quiz answers. Please retake the quiz.');
+      return router.push('/');
+    }
 
     try {
-      const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
+      setUploading(true);
+      setError('');
 
       const response = await fetch('/api/generate', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          image: imageSrc,
-          answers: quizAnswers,
+          quizAnswers: JSON.parse(quizAnswersRaw),
+          selfie: imageSrc,
         }),
       });
 
-      if (!response.ok) throw new Error('Image generation failed');
+      const data = await response.json();
 
-      const { mergedImage } = await response.json();
-
-      localStorage.setItem('mergedImage', mergedImage);
-      router.push('/result');
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      if (data.finalImageUrl) {
+        localStorage.setItem('mergedImage', data.finalImageUrl);
+        router.push('/result');
+      } else {
+        setError('Image generation failed. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Something went wrong. Please try again later.');
     } finally {
       setUploading(false);
     }
-  };
+  }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 text-black">
-      <h1 className="text-2xl font-bold mb-4">📸 Capture Your Selfie</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
+      <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
 
       <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        className="w-full max-w-sm rounded-lg border"
-      />
-
-      <button
-        onClick={capture}
-        disabled={uploading}
-        className="mt-4 bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700"
-      >
-        {uploading ? 'Summoning your fantasy...' : 'Capture & Enter Fantasy'}
-      </button>
-
-      {error && <p className="text-red-600 mt-2">{error}</p>}
-    </div>
-  );
-}
+        audio=
