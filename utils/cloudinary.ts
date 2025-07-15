@@ -6,15 +6,14 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-export async function uploadToCloudinary(base64Image: string): Promise<string> {
-  try {
-    const uploadResponse = await cloudinary.uploader.upload(base64Image, {
-      folder: 'infinite-tsukuyomi',
+export async function uploadImageToCloudinary(imageDataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(imageDataUrl, { folder: 'infinite-tsukuyomi' }, (error, result) => {
+      if (error || !result?.secure_url) {
+        reject(error || new Error("Upload failed"));
+      } else {
+        resolve(result.secure_url);
+      }
     });
-    return uploadResponse.secure_url;
-  } catch (error) {
-    console.error('Cloudinary Upload Error:', error);
-    throw new Error('Cloudinary upload failed');
-  }
+  });
 }
-
