@@ -3,44 +3,46 @@
 import { useEffect, useState } from "react";
 
 export default function ResultPage() {
+  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
-  const [finalImage, setFinalImage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const answers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
+    const selfie = localStorage.getItem("selfie");
+
+    if (!answers.length || !selfie) {
+      console.error("❌ Missing quiz answers or selfie");
+      setError("Missing data. Please complete the quiz and selfie again.");
+      setLoading(false);
+      return;
+    }
+
+    console.log("✅ Sending data to backend:", { answers, selfie });
+
     const generateImage = async () => {
-      const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
-      const selfieDataUrl = localStorage.getItem("selfieDataUrl");
-
-      console.log("✅ Incoming quizAnswers:", quizAnswers);
-      console.log("✅ Incoming selfieDataUrl:", selfieDataUrl);
-
-      if (!quizAnswers || quizAnswers.length !== 7 || !selfieDataUrl) {
-        console.error("❌ Missing input data", { quizAnswers, selfieDataUrl });
-        setError("Missing quiz answers or selfie. Please go back and try again.");
-        setLoading(false);
-        return;
-      }
-
       try {
         const response = await fetch("/api/generate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ answers: quizAnswers, selfie: selfieDataUrl }),
+          body: JSON.stringify({
+            quizAnswers: answers,
+            selfieDataUrl: selfie,
+          }),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to generate image");
-        }
-
         const data = await response.json();
-        console.log("✅ Response from backend:", data);
-        setFinalImage(data.finalImageUrl);
+
+        if (data.imageUrl) {
+          setImageUrl(data.imageUrl);
+        } else {
+          throw new Error("No image returned");
+        }
       } catch (err: any) {
-        console.error("❌ Error during generation", err);
-        setError("Something went wrong. Please try again.");
+        console.error("❌ Image generation error:", err);
+        setError("Failed to generate image. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -50,19 +52,18 @@ export default function ResultPage() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-black bg-white">
-      <h1 className="text-3xl font-bold mb-6">🌀 Your Infinite Tsukuyomi</h1>
-
-      {loading && <p>Generating your fantasy image...</p>}
-
-      {error && (
-        <div className="text-red-500 text-center">
-          <p>{error}</p>
-        </div>
-      )}
-
-      {!loading && finalImage && (
-        <img src={finalImage} alt="Fantasy Result" className="max-w-full h-auto mt-6 rounded-lg shadow-lg" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
+      <h1 className="text-3xl font-bold mb-6">🧠 Your Fantasy World</h1>
+      {loading ? (
+        <p>Generating your image... ⏳</p>
+      ) : error ? (
+        <p className="text-red-500">{error}</p>
+      ) : (
+        <img
+          src={imageUrl}
+          alt="Generated Fantasy"
+          className="max-w-full rounded-lg shadow-lg"
+        />
       )}
     </div>
   );
