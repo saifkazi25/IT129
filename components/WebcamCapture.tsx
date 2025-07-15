@@ -10,48 +10,25 @@ export default function WebcamCapture() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleCaptureAndGenerate = async () => {
+  const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
-
     if (!imageSrc) {
       setError('Could not capture selfie. Please try again.');
       return;
     }
 
-    const quizAnswersRaw = localStorage.getItem('quizAnswers');
-    if (!quizAnswersRaw) {
-      setError('Missing quiz answers. Please complete the quiz again.');
-      return;
-    }
-
-    const quizAnswers = JSON.parse(quizAnswersRaw);
-    const selfie = imageSrc;
-
-    setUploading(true);
-
     try {
-      console.log('Sending to /api/generate:', { quizAnswers, selfie: selfie.slice(0, 100) });
+      localStorage.setItem('selfie', imageSrc);
+      const quizAnswers = localStorage.getItem('quizAnswers');
 
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quizAnswers, selfie }),
-      });
+      // 🧠 DEBUG: check what’s in localStorage
+      console.log('✅ Selfie saved to localStorage:', imageSrc.slice(0, 50));
+      console.log('✅ Quiz Answers:', quizAnswers);
 
-      const data = await response.json();
-
-      if (response.ok && data.image) {
-        localStorage.setItem('fantasyImage', data.image);
-        router.push('/result');
-      } else {
-        console.error('API error:', data.error);
-        setError('Failed to generate fantasy image.');
-      }
+      router.push('/result');
     } catch (err) {
-      console.error('Fetch error:', err);
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setUploading(false);
+      console.error('❌ Error saving selfie:', err);
+      setError('Error saving selfie. Please try again.');
     }
   };
 
@@ -63,16 +40,19 @@ export default function WebcamCapture() {
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         className="rounded-lg shadow-md mb-4"
-        videoConstraints={{ facingMode: 'user' }}
+        videoConstraints={{
+          facingMode: 'user',
+        }}
       />
       <button
-        onClick={handleCaptureAndGenerate}
+        onClick={capture}
         className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
         disabled={uploading}
       >
-        {uploading ? 'Generating...' : 'Capture & Generate'}
+        {uploading ? 'Uploading...' : 'Capture & Generate'}
       </button>
       {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>
   );
 }
+
