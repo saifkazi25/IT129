@@ -19,15 +19,14 @@ export default function WebcamCapture() {
 
     try {
       localStorage.setItem('selfie', imageSrc);
-      const quizAnswers = localStorage.getItem('quizAnswers');
+      console.log('✅ Selfie saved to localStorage:', imageSrc.substring(0, 30) + '...');
 
-      // 🧠 DEBUG: check what’s in localStorage
-      console.log('✅ Selfie saved to localStorage:', imageSrc.slice(0, 50));
-      console.log('✅ Quiz Answers:', quizAnswers);
+      const quizAnswers = localStorage.getItem('quizAnswers');
+      console.log('✅ Retrieved quizAnswers:', quizAnswers);
 
       router.push('/result');
     } catch (err) {
-      console.error('❌ Error saving selfie:', err);
+      console.error('❌ Error saving selfie. Please try again.', err);
       setError('Error saving selfie. Please try again.');
     }
   };
@@ -55,4 +54,3 @@ export default function WebcamCapture() {
     </div>
   );
 }
-
