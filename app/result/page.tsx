@@ -1,85 +1,69 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from "react";
 
 export default function ResultPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [imageUrl, setImageUrl] = useState('');
-  const [error, setError] = useState('');
+  const [finalImage, setFinalImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const generateFantasy = async () => {
-      const quizAnswers = localStorage.getItem('quizAnswers');
-      const selfie = localStorage.getItem('selfie');
+    const generateImage = async () => {
+      const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
+      const selfieDataUrl = localStorage.getItem("selfieDataUrl");
 
-      if (!quizAnswers || !selfie) {
-        router.push('/');
+      console.log("✅ Incoming quizAnswers:", quizAnswers);
+      console.log("✅ Incoming selfieDataUrl:", selfieDataUrl);
+
+      if (!quizAnswers || quizAnswers.length !== 7 || !selfieDataUrl) {
+        console.error("❌ Missing input data", { quizAnswers, selfieDataUrl });
+        setError("Missing quiz answers or selfie. Please go back and try again.");
+        setLoading(false);
         return;
       }
 
       try {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
+        const response = await fetch("/api/generate", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            answers: JSON.parse(quizAnswers),
-            selfie,
-          }),
+          body: JSON.stringify({ answers: quizAnswers, selfie: selfieDataUrl }),
         });
 
-        if (!res.ok) {
-          throw new Error('Failed to generate image');
+        if (!response.ok) {
+          throw new Error("Failed to generate image");
         }
 
-        const data = await res.json();
-        setImageUrl(data.finalImage); // this is the merged image URL
-        setLoading(false);
-      } catch (err) {
-        console.error('❌ Error generating fantasy image:', err);
-        setError('Failed to generate your fantasy image. Please try again.');
+        const data = await response.json();
+        console.log("✅ Response from backend:", data);
+        setFinalImage(data.finalImageUrl);
+      } catch (err: any) {
+        console.error("❌ Error during generation", err);
+        setError("Something went wrong. Please try again.");
+      } finally {
         setLoading(false);
       }
     };
 
-    generateFantasy();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white text-black">
-        <p className="text-xl font-semibold">⏳ Creating your fantasy world...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white text-black">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+    generateImage();
+  }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
-      <h1 className="text-3xl font-bold mb-4">🌌 Your Infinite Tsukuyomi Awaits</h1>
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt="Your fantasy image"
-          className="max-w-full rounded-lg shadow-lg mb-6"
-        />
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-black bg-white">
+      <h1 className="text-3xl font-bold mb-6">🌀 Your Infinite Tsukuyomi</h1>
+
+      {loading && <p>Generating your fantasy image...</p>}
+
+      {error && (
+        <div className="text-red-500 text-center">
+          <p>{error}</p>
+        </div>
       )}
-      <button
-        onClick={() => router.push('/')}
-        className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded"
-      >
-        🔁 Restart
-      </button>
+
+      {!loading && finalImage && (
+        <img src={finalImage} alt="Fantasy Result" className="max-w-full h-auto mt-6 rounded-lg shadow-lg" />
+      )}
     </div>
   );
 }
