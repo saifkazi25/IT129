@@ -1,66 +1,61 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const questions = [
   'What kind of world excites you the most?',
   'Pick a city or landscape you dream about.',
   'Choose a role you’d love to live as.',
-  'What kind of outfit would you wear in this fantasy?',
-  'Pick a setting you’d want around you.',
-  'What’s the vibe or mood of your ideal world?',
-  'Would you rather fly, fight, or explore?',
+  'What type of outfit would you wear in this world?',
+  'Pick a fantasy setting you’d love to explore.',
+  'What’s the vibe of your dream world?',
+  'Choose a magical ability or skill.'
 ];
 
 export default function QuizForm() {
-  const [answers, setAnswers] = useState(Array(questions.length).fill(''));
-  const [error, setError] = useState('');
+  const [answers, setAnswers] = useState<string[]>(Array(7).fill(''));
   const router = useRouter();
 
   const handleChange = (index: number, value: string) => {
-    const updated = [...answers];
-    updated[index] = value;
-    setAnswers(updated);
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = value;
+    setAnswers(updatedAnswers);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (answers.some((a) => a.trim() === '')) {
-      setError('Please answer all questions before continuing.');
+
+    if (answers.some((ans) => ans.trim() === '')) {
+      alert('Please answer all questions.');
       return;
     }
 
-    try {
-      localStorage.setItem('quizAnswers', JSON.stringify(answers));
-      console.log('✅ Saved quizAnswers to localStorage:', answers);
-      router.push('/selfie');
-    } catch (err) {
-      console.error('❌ Error saving quiz answers to localStorage:', err);
-      setError('Failed to save your answers. Please try again.');
-    }
+    localStorage.setItem('quizAnswers', JSON.stringify(answers));
+    console.log('✅ Saved quizAnswers to localStorage:', answers);
+    router.push('/selfie');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-center">✨ Enter Your Dream World</h1>
-      {questions.map((q, i) => (
-        <div key={i}>
-          <label className="block font-semibold mb-2">{q}</label>
+    <form onSubmit={handleSubmit} className="space-y-4 p-4">
+      {questions.map((question, index) => (
+        <div key={index} className="flex flex-col">
+          <label className="font-semibold">{question}</label>
           <input
             type="text"
-            value={answers[i]}
-            onChange={(e) => handleChange(i, e.target.value)}
-            className="w-full px-3 py-2 rounded border text-black"
+            value={answers[index]}
+            onChange={(e) => handleChange(index, e.target.value)}
+            className="border rounded px-3 py-2 mt-1"
+            required
           />
         </div>
       ))}
-      {error && <p className="text-red-500 text-center">{error}</p>}
+
       <button
         type="submit"
-        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+        className="mt-4 w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition"
       >
-        Continue to Selfie
+        Next: Take Selfie
       </button>
     </form>
   );
