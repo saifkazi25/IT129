@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // ✅ FIXED: use 'any' to avoid TS type conflict
   const router = useRouter();
   const [error, setError] = useState("");
   const [captured, setCaptured] = useState(false);
@@ -25,12 +25,11 @@ export default function WebcamCapture() {
       return;
     }
 
-    console.log("✅ imageSrc:", imageSrc.slice(0, 100)); // log first part only
+    console.log("✅ imageSrc:", imageSrc.slice(0, 100));
     localStorage.setItem("selfie", imageSrc);
     setSelfie(imageSrc);
     setCaptured(true);
 
-    // Wait a bit to ensure it's written to localStorage
     setTimeout(() => {
       router.push("/result");
     }, 300);
