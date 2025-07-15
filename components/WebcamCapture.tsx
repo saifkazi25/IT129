@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 export default function WebcamCapture() {
   const webcamRef = useRef<any>(null);
   const router = useRouter();
+
+  const [cameraReady, setCameraReady] = useState(false);
   const [captured, setCaptured] = useState(false);
   const [error, setError] = useState("");
   const [selfie, setSelfie] = useState<string | null>(null);
@@ -18,14 +20,13 @@ export default function WebcamCapture() {
   };
 
   const capture = useCallback(() => {
-    const webcam = webcamRef.current;
-    if (!webcam) {
-      console.error("❌ Webcam ref is null");
-      setError("Webcam not ready");
+    if (!cameraReady) {
+      console.warn("⏳ Webcam not ready yet.");
+      setError("Webcam is not ready yet. Please wait a moment.");
       return;
     }
 
-    const imageSrc = webcam.getScreenshot();
+    const imageSrc = webcamRef.current?.getScreenshot();
 
     console.log("📸 Attempting to capture selfie...");
     if (!imageSrc) {
@@ -44,13 +45,14 @@ export default function WebcamCapture() {
       setCaptured(true);
 
       setTimeout(() => {
+        console.log("➡️ Navigating to /result");
         router.push("/result");
       }, 500);
     } catch (e) {
       console.error("❌ Failed to save selfie to localStorage:", e);
       setError("Failed to save selfie. Please try again.");
     }
-  }, [router]);
+  }, [cameraReady, router]);
 
   return (
     <div className="flex flex-col items-center justify-center p-6">
@@ -62,8 +64,18 @@ export default function WebcamCapture() {
             ref={webcamRef}
             audio={false}
             screenshotFormat="image/jpeg"
+            screenshotQuality={1}
+            width={640}
+            height={480}
             videoConstraints={videoConstraints}
-            onUserMedia={() => console.log("🎥 Webcam ready")}
+            onUserMedia={() => {
+              console.log("🎥 Webcam ready");
+              setCameraReady(true);
+            }}
+            onUserMediaError={(err) => {
+              console.error("❌ Webcam error:", err);
+              setError("Unable to access webcam. Please allow camera access.");
+            }}
             className="rounded shadow-lg"
           />
           <button
