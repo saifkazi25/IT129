@@ -5,87 +5,68 @@ import { useRouter } from 'next/navigation';
 
 export default function ResultPage() {
   const router = useRouter();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fantasyImage, setFantasyImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const generateImage = async () => {
+    const generateFantasyImage = async () => {
+      const quiz = localStorage.getItem('quiz');
+      const selfie = localStorage.getItem('selfie');
+
+      if (!quiz || !selfie) {
+        console.warn('Missing quiz or selfie data. Redirecting...');
+        router.push('/');
+        return;
+      }
+
       try {
-        const quizDataString = localStorage.getItem('quizData');
-        const selfieDataUrl = localStorage.getItem('selfie');
-
-        if (!quizDataString || !selfieDataUrl) {
-          console.warn('Missing quiz answers or selfie.');
-          router.replace('/');
-          return;
-        }
-
-        const quizData = JSON.parse(quizDataString);
-
         const response = await fetch('/api/generate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            quizData,
-            selfie: selfieDataUrl,
-          }),
+          body: JSON.stringify({ quiz: JSON.parse(quiz), selfie }),
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Generation failed: ${errorText}`);
+          const errorBody = await response.json();
+          throw new Error(errorBody.error || 'Image generation failed.');
         }
 
         const data = await response.json();
-        setImageUrl(data.imageUrl);
+        setFantasyImage(data.image);
       } catch (err: any) {
-        console.error('Image generation error:', err);
-        setError('Failed to generate image. Please try again.');
+        console.error(err);
+        setError(err.message || 'Something went wrong.');
       } finally {
         setLoading(false);
       }
     };
 
-    generateImage();
+    generateFantasyImage();
   }, [router]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white text-black">
-        <h1 className="text-2xl font-bold animate-pulse">🧠 Loading your fantasy...</h1>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">⚠️ Error</h1>
-        <p>{error}</p>
-        <button
-          onClick={() => router.push('/')}
-          className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Go back to Quiz
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">🌌 Your Fantasy Awaits</h1>
-      {imageUrl ? (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-6">🌌 Your Fantasy World Awaits</h1>
+
+      {loading && <p className="text-lg">✨ Generating your fantasy...</p>}
+
+      {!loading && error && (
+        <p className="text-red-500 text-center text-lg">{error}</p>
+      )}
+
+      {!loading && fantasyImage && (
         <img
-          src={imageUrl}
-          alt="Your fantasy"
-          className="rounded-lg shadow-lg max-w-full h-auto"
+          src={fantasyImage}
+          alt="Your fantasy world"
+          className="max-w-full h-auto rounded-lg shadow-md"
         />
-      ) : (
-        <p>Image not available.</p>
+      )}
+
+      {!loading && !fantasyImage && !error && (
+        <p className="text-gray-500">Image not available.</p>
       )}
     </div>
   );
