@@ -1,43 +1,62 @@
-'use client';
+"use client";
 
-import Webcam from 'react-webcam';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState, useCallback } from "react";
+import Webcam, { WebcamProps } from "react-webcam";
+import { useRouter } from "next/navigation";
 
-interface CustomWebcamProps {
-  onCapture: (dataUrl: string) => void;
-}
+export default function WebcamCapture() {
+  const webcamRef = useRef<Webcam | null>(null);
+  const router = useRouter();
+  const [cameraReady, setCameraReady] = useState(false);
+  const [error, setError] = useState("");
 
-export default function CustomWebcam({ onCapture }: CustomWebcamProps) {
-  const webcamRef = useRef<any>(null); // Temporarily use 'any' to fix the typing issue
-  const [error, setError] = useState<string | null>(null);
+  const videoConstraints = {
+    width: 640,
+    height: 480,
+    facingMode: "user",
+  };
+
+  const handleUserMedia = () => {
+    setCameraReady(true);
+  };
 
   const capture = useCallback(() => {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
-        onCapture(imageSrc);
+        // ✅ Save selfie to localStorage
+        localStorage.setItem("selfieDataUrl", imageSrc);
+        console.log("✅ Selfie saved to localStorage");
+
+        // ➡️ Move to /result page
+        router.push("/result");
       } else {
-        setError('Unable to capture image.');
+        setError("Failed to capture image. Please try again.");
       }
     }
-  }, [onCapture]);
+  }, []);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white text-black">
+      <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        videoConstraints={{ facingMode: 'user' }}
-        className="rounded border"
+        videoConstraints={videoConstraints}
+        onUserMedia={handleUserMedia}
+        className="rounded-md border shadow-md"
       />
+
       <button
         onClick={capture}
-        className="mt-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        disabled={!cameraReady}
+        className="mt-6 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
       >
-        Capture Selfie
+        Capture & See Result
       </button>
-      {error && <p className="text-red-600 mt-2">{error}</p>}
     </div>
   );
 }
