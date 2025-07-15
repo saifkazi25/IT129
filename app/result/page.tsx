@@ -1,76 +1,47 @@
-// app/result/page.tsx
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ResultPage() {
-  const [imageUrl, setImageUrl] = useState('');
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [finalImageUrl, setFinalImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchFantasyImage = async () => {
-      const quizAnswersRaw = localStorage.getItem('quizAnswers');
-      const selfieDataUrl = localStorage.getItem('selfie');
-
-      if (!quizAnswersRaw || !selfieDataUrl) {
-        console.error('Missing quiz or selfie data. Redirecting...');
-        router.push('/');
-        return;
-      }
-
-      try {
-        const quizAnswers = JSON.parse(quizAnswersRaw);
-
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            answers: quizAnswers,
-            selfie: selfieDataUrl,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error('API responded with error', response.status);
-          router.push('/');
-          return;
-        }
-
-        const data = await response.json();
-        setImageUrl(data.imageUrl);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error generating image:', err);
+    // Run only on client
+    if (typeof window !== 'undefined') {
+      const storedImage = localStorage.getItem('finalImageUrl') || localStorage.getItem('mergedImage');
+      if (storedImage) {
+        setFinalImageUrl(storedImage);
+      } else {
+        console.warn('Image not found in localStorage, redirecting...');
         router.push('/');
       }
-    };
-
-    fetchFantasyImage();
+      setLoading(false);
+    }
   }, [router]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-black text-white">
-        <h1 className="text-2xl animate-pulse">🔮 Generating Your Fantasy...</h1>
+      <div className="min-h-screen flex items-center justify-center text-xl text-white bg-black">
+        Loading your fantasy...
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
-      <h1 className="text-2xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
-      <img src={imageUrl} alt="Fantasy Result" className="max-w-full max-h-[80vh] rounded-xl shadow-lg" />
-      <button
-        className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded-lg shadow-md hover:bg-gray-300"
-        onClick={() => router.push('/')}
-      >
-        🔁 Try Again
-      </button>
-    </div>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-4">
+      <h1 className="text-3xl font-bold mb-6 text-center">🌌 Behold Your Infinite Tsukuyomi</h1>
+      {finalImageUrl ? (
+        <img
+          src={finalImageUrl}
+          alt="Final Fantasy Merge"
+          className="max-w-full rounded-2xl shadow-lg"
+        />
+      ) : (
+        <p className="text-lg text-red-500 mt-4">Oops! No image found. Please try again.</p>
+      )}
+    </main>
   );
 }
-
-
