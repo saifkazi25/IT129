@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // ✅ FIXED typing
   const router = useRouter();
   const [captured, setCaptured] = useState(false);
   const [error, setError] = useState("");
@@ -19,7 +19,7 @@ export default function WebcamCapture() {
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
-    console.log("📸 imageSrc captured:", imageSrc?.substring(0, 100)); // Log part of base64
+    console.log("📸 imageSrc captured:", imageSrc?.substring(0, 100)); // debug log
 
     if (imageSrc) {
       localStorage.setItem("selfie", imageSrc);
@@ -31,7 +31,7 @@ export default function WebcamCapture() {
       setTimeout(() => {
         console.log("➡️ Navigating to /result");
         router.push("/result");
-      }, 500); // ⏱️ Delay to ensure storage is written
+      }, 500);
     } else {
       console.error("❌ Failed to capture selfie — imageSrc is null");
       setError("Failed to capture image. Please try again.");
