@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { uploadImageToCloudinary } from '../../../utils/cloudinary';
-import { runSDXL, runFaceFusion } from '../../../utils/replicate';
+import { generateFantasyImage, mergeFaceWithFantasy } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
@@ -15,10 +15,10 @@ export async function POST(req: Request) {
 
     // Step 2: Generate fantasy image with SDXL using quiz answers
     const prompt = generateFantasyPrompt(quizAnswers);
-    const fantasyImageUrl = await runSDXL(prompt);
+    const fantasyImageUrl = await generateFantasyImage(prompt);
 
     // Step 3: Merge user selfie into fantasy image using FaceFusion
-    const finalImageUrl = await runFaceFusion(selfieUrl, fantasyImageUrl);
+    const finalImageUrl = await mergeFaceWithFantasy(selfieUrl, fantasyImageUrl);
 
     return NextResponse.json({ image: finalImageUrl });
   } catch (error) {
