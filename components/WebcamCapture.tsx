@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ Safe TS ref
-
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [captured, setCaptured] = useState(false);
-  const [selfie, setSelfie] = useState<string | null>(null);
 
   const videoConstraints = {
     width: 640,
@@ -19,83 +17,78 @@ export default function WebcamCapture() {
     facingMode: "user",
   };
 
-  useEffect(() => {
-    const storedSelfie = localStorage.getItem("selfieDataUrl");
-    if (storedSelfie) {
-      setSelfie(storedSelfie);
-      setCaptured(true);
-    }
-  }, []);
+  const uploadToCloudinary = async (imageSrc: string): Promise<string | null> => {
+    try {
+      const data = new FormData();
+      data.append("file", imageSrc);
+      data.append("upload_preset", "YOUR_UPLOAD_PRESET"); // 🔁 Replace with your preset
+      data.append("cloud_name", "YOUR_CLOUD_NAME"); // 🔁 Replace with your Cloud name
 
-  const handleUserMedia = () => {
-    setCameraReady(true);
+      const res = await fetch("https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload", {
+        method: "POST",
+        body: data,
+      });
+
+      const json = await res.json();
+      return json.secure_url;
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      return null;
+    }
   };
 
-  const capture = useCallback(() => {
-    if (!webcamRef.current) {
-      console.error("❌ Webcam ref is null");
-      setError("Webcam not ready. Please try again.");
-      return;
-    }
-
+  const capture = useCallback(async () => {
+    if (!webcamRef.current) return;
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
-      setError("Failed to capture image. Please try again.");
+      setError("Unable to capture image.");
       return;
     }
 
-    setSelfie(imageSrc);
-    localStorage.setItem("selfieDataUrl", imageSrc);
-    setCaptured(true);
+    setUploading(true);
 
-    console.log("✅ Selfie captured and saved");
+    const selfieUrl = await uploadToCloudinary(imageSrc);
+    if (!selfieUrl) {
+      setError("Failed to upload image to Cloudinary.");
+      setUploading(false);
+      return;
+    }
 
-    setTimeout(() => {
-      router.push("/result");
-    }, 500);
+    localStorage.setItem("selfieUrl", selfieUrl);
+    setUploading(false);
+    router.push("/result");
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
-      <h1 className="text-2xl mb-4 font-bold">Step 2: Capture Your Selfie</h1>
+    <div style={{ textAlign: "center" }}>
+      <h1>Take a Selfie</h1>
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {!captured ? (
-        <>
-          <div className="mb-4">
-            <Webcam
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              videoConstraints={videoConstraints}
-              onUserMedia={handleUserMedia}
-              className="rounded-lg shadow-md"
-            />
-          </div>
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        videoConstraints={videoConstraints}
+        onUserMedia={() => setCameraReady(true)}
+      />
 
-          {error && <p className="text-red-500 mb-2">{error}</p>}
-
-          <button
-            onClick={capture}
-            disabled={!cameraReady}
-            className={`px-6 py-3 rounded-lg font-semibold transition ${
-              cameraReady
-                ? "bg-green-500 hover:bg-green-600"
-                : "bg-gray-500 cursor-not-allowed"
-            }`}
-          >
-            {cameraReady ? "Capture Selfie" : "Camera Loading..."}
-          </button>
-        </>
-      ) : (
-        <>
-          <img
-            src={selfie as string}
-            alt="Captured selfie"
-            className="w-64 h-auto rounded-lg shadow-md mb-4"
-          />
-          <p className="text-green-400 font-semibold">✅ Selfie Saved</p>
-        </>
-      )}
+      <div style={{ marginTop: "20px" }}>
+        <button
+          onClick={capture}
+          disabled={!cameraReady || uploading}
+          style={{
+            padding: "10px 20px",
+            fontSize: "16px",
+            cursor: "pointer",
+            backgroundColor: uploading ? "#ccc" : "#4CAF50",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+          }}
+        >
+          {uploading ? "Uploading..." : "Capture Selfie"}
+        </button>
+      </div>
     </div>
   );
 }
