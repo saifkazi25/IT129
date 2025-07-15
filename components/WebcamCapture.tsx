@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import Webcam from "react-webcam";
+import Webcam, { Webcam as WebcamType } from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<WebcamType | null>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
@@ -24,17 +24,14 @@ export default function WebcamCapture() {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
-        // ✅ Save to localStorage
         localStorage.setItem("selfieDataUrl", imageSrc);
         console.log("✅ Selfie saved to localStorage");
-
-        // Go to result page
         router.push("/result");
       } else {
         setError("Failed to capture image. Please try again.");
       }
     }
-  }, [webcamRef]);
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white text-black">
