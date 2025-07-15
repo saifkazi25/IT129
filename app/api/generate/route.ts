@@ -1,45 +1,41 @@
-// app/api/generate/route.ts
-
-import { NextResponse } from "next/server";
-import { uploadImageToCloudinary } from "../../../utils/cloudinary";
-import { generateFantasyImage, mergeFaceWithFantasy } from "../../../utils/replicate";
+import { NextResponse } from 'next/server';
+import { uploadImageToCloudinary } from '../../../utils/cloudinary';
+import { runSDXL, runFaceFusion } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { quiz, selfie } = body;
+    const { quizAnswers, selfie } = await req.json();
 
-    if (!quiz || !Array.isArray(quiz) || quiz.length < 7) {
-      return NextResponse.json({ error: "Invalid quiz data." }, { status: 400 });
+    if (!quizAnswers || !selfie) {
+      return NextResponse.json({ error: 'Missing quiz or selfie data.' }, { status: 400 });
     }
 
-    if (!selfie || typeof selfie !== "string") {
-      return NextResponse.json({ error: "Selfie not provided." }, { status: 400 });
-    }
+    // Step 1: Upload selfie to Cloudinary
+    const selfieUrl = await uploadImageToCloudinary(selfie);
 
-    // Upload selfie to Cloudinary
-    const cloudinaryUrl = await uploadImageToCloudinary(selfie);
-    if (!cloudinaryUrl) {
-      return NextResponse.json({ error: "Failed to upload selfie." }, { status: 500 });
-    }
+    // Step 2: Generate fantasy image with SDXL using quiz answers
+    const prompt = generateFantasyPrompt(quizAnswers);
+    const fantasyImageUrl = await runSDXL(prompt);
 
-    // Generate fantasy image using SDXL with enhanced prompt
-    const fantasyPrompt = `A highly detailed fantasy scene featuring a ${quiz[2]} wearing a ${quiz[3]} in a ${quiz[4]} setting, inspired by ${quiz[5]} and ${quiz[6]}. Beautiful lighting, ethereal atmosphere, cinematic. The character is standing clearly facing the camera.`;
-    const fantasyImage = await generateFantasyImage(fantasyPrompt);
-    if (!fantasyImage) {
-      return NextResponse.json({ error: "Fantasy image generation failed." }, { status: 500 });
-    }
+    // Step 3: Merge user selfie into fantasy image using FaceFusion
+    const finalImageUrl = await runFaceFusion(selfieUrl, fantasyImageUrl);
 
-    // Merge face using FaceFusion
-    const finalImage = await mergeFaceWithFantasy(cloudinaryUrl, fantasyImage);
-    if (!finalImage) {
-      return NextResponse.json({ error: "Face merging failed." }, { status: 500 });
-    }
-
-    return NextResponse.json({ image: finalImage });
-  } catch (err) {
-    console.error("Error generating image:", err);
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+    return NextResponse.json({ image: finalImageUrl });
+  } catch (error) {
+    console.error('Error in /api/generate:', error);
+    return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 });
   }
 }
 
+function generateFantasyPrompt(answers: string[]): string {
+  return `
+    a highly detailed cinematic illustration of a person in a surreal fantasy world.
+    The setting is: ${answers[1]}.
+    Their role is: ${answers[2]}.
+    They are wearing: ${answers[3]}.
+    The environment around them includes: ${answers[4]}.
+    The vibe is: ${answers[5]}.
+    The power they have is: ${answers[6]}.
+    Photorealistic, high-resolution, front-facing portrait, masterpiece, 8K.
+  `.trim();
+}
