@@ -9,39 +9,48 @@ export default function ResultPage() {
   const [ready, setReady] = useState(false); // wait for hydration
 
   useEffect(() => {
-    setReady(true); // ensure we are in client-side before accessing localStorage
+    setReady(true);
   }, []);
 
   useEffect(() => {
     if (!ready) return;
 
-    const answers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
-    const selfie = localStorage.getItem("selfie");
+    const tryGetData = async () => {
+      let answers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
+      let selfie = localStorage.getItem("selfie");
 
-    if (!answers.length || !selfie) {
-      console.error("❌ Missing quiz answers or selfie");
-      setError("Missing data. Please complete the quiz and selfie again.");
-      setLoading(false);
-      return;
-    }
+      console.log("🧪 Initial read:");
+      console.log("📋 quizAnswers:", answers);
+      console.log("📷 selfieDataUrl:", selfie?.substring(0, 100));
 
-    console.log("✅ Sending data to backend:", { answers, selfie });
+      if (!answers.length || !selfie) {
+        console.warn("⏱ Waiting 100ms to retry selfie read...");
+        await new Promise((res) => setTimeout(res, 100)); // wait 100ms
+        answers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
+        selfie = localStorage.getItem("selfie");
 
-    const generateImage = async () => {
+        console.log("🔁 Retried read:");
+        console.log("📋 quizAnswers:", answers);
+        console.log("📷 selfieDataUrl:", selfie?.substring(0, 100));
+      }
+
+      if (!answers.length || !selfie) {
+        console.error("❌ Missing quiz answers or selfie");
+        setError("Missing data. Please complete the quiz and selfie again.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("✅ Sending to backend:", { answers, selfie });
+
       try {
         const response = await fetch("/api/generate", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            quizAnswers: answers,
-            selfieDataUrl: selfie,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quizAnswers: answers, selfieDataUrl: selfie }),
         });
 
         const data = await response.json();
-
         if (data.imageUrl) {
           setImageUrl(data.imageUrl);
         } else {
@@ -55,7 +64,7 @@ export default function ResultPage() {
       }
     };
 
-    generateImage();
+    tryGetData();
   }, [ready]);
 
   return (
