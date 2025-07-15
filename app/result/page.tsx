@@ -4,70 +4,76 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ResultPage() {
-  const [imageUrl, setImageUrl] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [imageUrl, setImageUrl] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const generateImage = async () => {
       try {
-        const quizAnswersRaw = localStorage.getItem('quizAnswers');
+        const quizAnswers = localStorage.getItem('quizAnswers');
         const selfie = localStorage.getItem('selfie');
 
-        if (!quizAnswersRaw || !selfie) {
-          console.warn('Missing quiz or selfie data. Redirecting...');
+        console.log('📦 Retrieved quizAnswers:', quizAnswers);
+        console.log('📸 Retrieved selfie (start):', selfie?.substring(0, 30));
+
+        if (!quizAnswers || !selfie) {
+          console.warn('⚠️ Missing quiz or selfie data. Redirecting...');
           router.push('/');
           return;
         }
 
-        const quizAnswers = JSON.parse(quizAnswersRaw);
-
         const response = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ quizAnswers, selfie }),
+          body: JSON.stringify({
+            quizAnswers: JSON.parse(quizAnswers),
+            selfie,
+          }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error('API Error:', errorData);
-          throw new Error(errorData.error || 'Failed to generate image');
+          const { error } = await response.json();
+          throw new Error(error || 'Image generation failed');
         }
 
         const data = await response.json();
         setImageUrl(data.image);
+        setLoading(false);
       } catch (err: any) {
-        console.error('Image generation failed:', err.message);
+        console.error('❌ Error generating image:', err);
         setError(err.message || 'Something went wrong');
-      } finally {
         setLoading(false);
       }
     };
 
-    // Delay a bit to ensure localStorage is populated
-    setTimeout(generateImage, 200);
+    generateImage();
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">🌌 Your Fantasy World Awaits</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      {loading && <p className="text-xl font-semibold">⏳ Generating your fantasy world...</p>}
 
-      {loading && <p className="text-xl">✨ Generating your dream image...</p>}
-
-      {error && (
-        <p className="text-red-500 text-center text-lg mt-4">
-          ❌ {error}
-        </p>
+      {!loading && error && (
+        <div className="text-center">
+          <p className="text-red-500 text-lg font-bold">{error}</p>
+          <button
+            onClick={() => router.push('/')}
+            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded"
+          >
+            Try Again
+          </button>
+        </div>
       )}
 
       {!loading && imageUrl && (
-        <img
-          src={imageUrl}
-          alt="Your fantasy world"
-          className="mt-6 rounded-xl shadow-lg max-w-full w-[500px]"
-        />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">🌟 Welcome to Your Fantasy World</h1>
+          <img src={imageUrl} alt="Your fantasy world" className="rounded shadow-lg max-w-full" />
+        </div>
       )}
     </div>
   );
 }
+
