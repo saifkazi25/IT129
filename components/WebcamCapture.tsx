@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +43,7 @@ export default function WebcamCapture() {
 
     setTimeout(() => {
       router.push("/result");
-    }, 300); // Give time for storage to sync
+    }, 300);
   }, [router]);
 
   return (
