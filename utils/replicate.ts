@@ -44,3 +44,4 @@ export async function mergeFaceWithFantasy(faceUrl: string, fantasyUrl: string):
 
   return prediction[0];
 }
+
