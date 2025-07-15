@@ -5,19 +5,21 @@ import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // simplified typing
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  const capture = () => {
+  const capture = async () => {
     if (!cameraReady || !webcamRef.current) {
       setError('Camera not ready. Please wait or refresh.');
       return;
     }
 
     const imageSrc = webcamRef.current.getScreenshot();
+    console.log('📸 Captured selfie');
+
     if (!imageSrc) {
       setError('Could not capture selfie. Please allow camera access and try again.');
       return;
@@ -25,10 +27,19 @@ export default function WebcamCapture() {
 
     try {
       setUploading(true);
-      localStorage.setItem('selfie', imageSrc);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageSrc }),
+      });
+
+      const { url: selfieUrl } = await res.json();
+      console.log('☁️ Uploaded to Cloudinary:', selfieUrl);
+
+      localStorage.setItem('selfieUrl', selfieUrl);
       router.push('/result');
     } catch (err) {
-      setError('Error saving selfie. Try again.');
+      setError('Error uploading selfie. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -59,3 +70,4 @@ export default function WebcamCapture() {
     </div>
   );
 }
+
