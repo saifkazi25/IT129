@@ -1,20 +1,33 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import Webcam from "react-webcam";
+import ReactWebcam from "react-webcam"; // Corrected import
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<ReactWebcam | null>(null); // Correct type usage
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
   const [captured, setCaptured] = useState(false);
+  const [selfie, setSelfie] = useState<string | null>(null);
 
   const videoConstraints = {
     width: 640,
     height: 480,
     facingMode: "user",
+  };
+
+  useEffect(() => {
+    const storedSelfie = localStorage.getItem("selfieDataUrl");
+    if (storedSelfie) {
+      setSelfie(storedSelfie);
+      setCaptured(true);
+    }
+  }, []);
+
+  const handleUserMedia = () => {
+    setCameraReady(true);
   };
 
   const capture = useCallback(() => {
@@ -24,46 +37,65 @@ export default function WebcamCapture() {
       return;
     }
 
-    const screenshot = webcamRef.current.getScreenshot();
-
-    if (!screenshot) {
-      console.error("❌ Failed to capture screenshot");
-      setError("Failed to capture selfie. Please try again.");
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      setError("Failed to capture image. Please try again.");
       return;
     }
 
-    console.log("✅ Screenshot captured. Saving selfie to localStorage...");
-    localStorage.setItem("selfie", screenshot);
+    setSelfie(imageSrc);
+    localStorage.setItem("selfieDataUrl", imageSrc);
     setCaptured(true);
 
+    console.log("✅ Selfie captured and saved");
+
+    // Delay to ensure localStorage is saved before redirect
     setTimeout(() => {
-      console.log("🚀 Navigating to result page...");
       router.push("/result");
-    }, 300); // Small delay to ensure localStorage is saved before routing
+    }, 500);
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
-      <h1 className="text-3xl font-bold mb-6">📸 Take Your Selfie</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
+      <h1 className="text-2xl mb-4 font-bold">Step 2: Capture Your Selfie</h1>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {!captured ? (
+        <>
+          <div className="mb-4">
+            <ReactWebcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={videoConstraints}
+              onUserMedia={handleUserMedia}
+              className="rounded-lg shadow-md"
+            />
+          </div>
 
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        videoConstraints={videoConstraints}
-        className="rounded-md shadow-lg mb-4"
-        onUserMedia={() => setCameraReady(true)}
-      />
+          {error && <p className="text-red-500 mb-2">{error}</p>}
 
-      <button
-        onClick={capture}
-        disabled={!cameraReady || captured}
-        className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
-      >
-        {captured ? "Captured!" : "Capture Selfie"}
-      </button>
+          <button
+            onClick={capture}
+            disabled={!cameraReady}
+            className={`px-6 py-3 rounded-lg font-semibold transition ${
+              cameraReady
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-gray-500 cursor-not-allowed"
+            }`}
+          >
+            {cameraReady ? "Capture Selfie" : "Camera Loading..."}
+          </button>
+        </>
+      ) : (
+        <>
+          <img
+            src={selfie as string}
+            alt="Captured selfie"
+            className="w-64 h-auto rounded-lg shadow-md mb-4"
+          />
+          <p className="text-green-400 font-semibold">✅ Selfie Saved</p>
+        </>
+      )}
     </div>
   );
 }
