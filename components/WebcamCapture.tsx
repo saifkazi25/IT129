@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ THIS IS THE FIX
+  const webcamRef = useRef<any>(null); // simplified typing
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState('');
@@ -18,18 +18,19 @@ export default function WebcamCapture() {
     }
 
     const imageSrc = webcamRef.current.getScreenshot();
-    console.log('📸 Captured selfie:', imageSrc?.substring(0, 50));
-
     if (!imageSrc) {
       setError('Could not capture selfie. Please allow camera access and try again.');
       return;
     }
 
     try {
+      setUploading(true);
       localStorage.setItem('selfie', imageSrc);
       router.push('/result');
     } catch (err) {
       setError('Error saving selfie. Try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -49,3 +50,12 @@ export default function WebcamCapture() {
       <button
         onClick={capture}
         disabled={uploading}
+        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+      >
+        {uploading ? 'Uploading...' : 'Capture & Generate'}
+      </button>
+
+      {error && <p className="text-red-500 mt-4">{error}</p>}
+    </div>
+  );
+}
