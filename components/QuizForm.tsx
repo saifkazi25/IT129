@@ -31,8 +31,14 @@ export default function QuizForm() {
       return;
     }
 
-    localStorage.setItem('quizAnswers', JSON.stringify(answers));
-    router.push('/selfie');
+    try {
+      localStorage.setItem('quizAnswers', JSON.stringify(answers));
+      console.log('✅ Saved quizAnswers to localStorage:', answers);
+      router.push('/selfie');
+    } catch (err) {
+      console.error('❌ Error saving quiz answers to localStorage:', err);
+      setError('Failed to save your answers. Please try again.');
+    }
   };
 
   return (
@@ -59,4 +65,3 @@ export default function QuizForm() {
     </form>
   );
 }
-
