@@ -3,10 +3,9 @@
 import { useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
-import type { MutableRefObject } from 'react';
 
 export default function WebcamCapture() {
-  const webcamRef: MutableRefObject<Webcam | null> = useRef(null);
+  const webcamRef = useRef(null); // ✅ remove explicit type here
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -41,18 +40,15 @@ export default function WebcamCapture() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
       const data = await response.json();
+
       if (!data.finalImageUrl) {
         throw new Error('No image returned');
       }
 
       localStorage.setItem('finalImageUrl', data.finalImageUrl);
       router.push('/result');
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setError('Something went wrong. Please try again.');
     } finally {
