@@ -29,7 +29,13 @@ export default function WebcamCapture() {
         localStorage.setItem("selfie", imageSrc);
         setSelfie(imageSrc);
         setCaptured(true);
-        setTimeout(() => router.push("/result"), 1500);
+
+        // ✅ Short delay to ensure localStorage is saved before redirect
+        setTimeout(() => {
+          const check = localStorage.getItem("selfie");
+          console.log("📸 Saved selfie:", check?.substring(0, 100));
+          router.push("/result");
+        }, 300);
       } else {
         setError("Could not capture image. Please try again.");
       }
