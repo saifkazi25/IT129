@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null); // ✅ `Webcam` is being used as a value, not a type
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ Safe TS ref
 
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
