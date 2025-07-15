@@ -2,11 +2,11 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
-import type { Webcam as WebcamComponent } from "react-webcam"; // ✅ Correct type import
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ Proper typing
+  const webcamRef = useRef<Webcam>(null); // ✅ `Webcam` is being used as a value, not a type
+
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
@@ -50,7 +50,6 @@ export default function WebcamCapture() {
 
     console.log("✅ Selfie captured and saved");
 
-    // Delay to ensure selfie is saved before redirect
     setTimeout(() => {
       router.push("/result");
     }, 500);
