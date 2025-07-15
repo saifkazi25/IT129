@@ -6,8 +6,15 @@ export default function ResultPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [ready, setReady] = useState(false); // wait for hydration
 
   useEffect(() => {
+    setReady(true); // ensure we are in client-side before accessing localStorage
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+
     const answers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
     const selfie = localStorage.getItem("selfie");
 
@@ -49,7 +56,7 @@ export default function ResultPage() {
     };
 
     generateImage();
-  }, []);
+  }, [ready]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
