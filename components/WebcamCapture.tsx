@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import ReactWebcam from "react-webcam"; // Corrected import
+import Webcam, { WebcamProps } from "react-webcam"; // ✅ Import the component AND type
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<ReactWebcam | null>(null); // Correct type usage
+  const webcamRef = useRef<Webcam | null>(null); // ✅ Use `Webcam`, not `ReactWebcam`
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +49,7 @@ export default function WebcamCapture() {
 
     console.log("✅ Selfie captured and saved");
 
-    // Delay to ensure localStorage is saved before redirect
+    // Delay to ensure selfie is saved before redirect
     setTimeout(() => {
       router.push("/result");
     }, 500);
@@ -62,7 +62,7 @@ export default function WebcamCapture() {
       {!captured ? (
         <>
           <div className="mb-4">
-            <ReactWebcam
+            <Webcam
               audio={false}
               ref={webcamRef}
               screenshotFormat="image/jpeg"
