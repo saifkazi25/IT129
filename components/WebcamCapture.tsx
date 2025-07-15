@@ -3,17 +3,15 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
-import type { WebcamProps } from 'react-webcam'; // ✅ Only import props type
-import type { MutableRefObject } from 'react';    // ✅ Also import ref type
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<MutableRefObject<Webcam | null>>(null); // ✅ Fix type properly
+  const webcamRef = useRef<any>(null); // ✅ safest type for now to pass Vercel
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   const capture = () => {
-    const imageSrc = webcamRef.current?.current?.getScreenshot(); // ✅ add `.current` again
+    const imageSrc = webcamRef.current?.getScreenshot();
     if (!imageSrc) {
       setError('Could not capture selfie. Please try again.');
       return;
@@ -32,7 +30,7 @@ export default function WebcamCapture() {
       <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
       <Webcam
         audio={false}
-        ref={webcamRef as any} // ✅ cast as any to avoid strict typing issues
+        ref={webcamRef}
         screenshotFormat="image/jpeg"
         className="rounded-lg shadow-md mb-4"
         videoConstraints={{
