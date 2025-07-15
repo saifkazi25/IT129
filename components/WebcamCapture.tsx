@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null);
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
   const [captured, setCaptured] = useState(false);
   const [error, setError] = useState("");
@@ -18,22 +18,29 @@ export default function WebcamCapture() {
   };
 
   const capture = useCallback(() => {
-    if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (imageSrc) {
-        localStorage.setItem("selfie", imageSrc); // ✅ SAVE SELFIE
-        setSelfie(imageSrc);
-        setCaptured(true);
-        router.push("/result"); // ✅ Go to result
-      } else {
-        setError("Could not capture image. Try again.");
-      }
+    const imageSrc = webcamRef.current?.getScreenshot();
+    console.log("📸 imageSrc captured:", imageSrc?.substring(0, 100)); // Log part of base64
+
+    if (imageSrc) {
+      localStorage.setItem("selfie", imageSrc);
+      console.log("✅ Selfie saved to localStorage");
+
+      setSelfie(imageSrc);
+      setCaptured(true);
+
+      setTimeout(() => {
+        console.log("➡️ Navigating to /result");
+        router.push("/result");
+      }, 500); // ⏱️ Delay to ensure storage is written
+    } else {
+      console.error("❌ Failed to capture selfie — imageSrc is null");
+      setError("Failed to capture image. Please try again.");
     }
-  }, [webcamRef]);
+  }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
-      <h2 className="text-2xl font-bold mb-4">📸 Capture Your Selfie</h2>
+    <div className="flex flex-col items-center justify-center p-6">
+      <h2 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h2>
 
       {!captured ? (
         <>
@@ -42,20 +49,20 @@ export default function WebcamCapture() {
             ref={webcamRef}
             screenshotFormat="image/jpeg"
             videoConstraints={videoConstraints}
-            onUserMedia={() => console.log("Webcam ready")}
-            className="rounded-lg"
+            onUserMedia={() => console.log("🎥 Webcam ready")}
+            className="rounded shadow-lg"
           />
           <button
             onClick={capture}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-6 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700"
           >
             Capture Selfie
           </button>
         </>
       ) : (
         <>
-          <img src={selfie!} alt="Captured selfie" className="rounded-lg mb-4" />
-          <p className="text-green-600 font-medium">Selfie captured! Redirecting...</p>
+          <img src={selfie!} alt="Your Selfie" className="rounded-lg mb-4 max-w-sm" />
+          <p className="text-green-600 font-medium">Captured! Heading to /result...</p>
         </>
       )}
 
