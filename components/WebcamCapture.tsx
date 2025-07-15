@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
   const webcamRef = useRef<any>(null);
   const router = useRouter();
-  const [cameraReady, setCameraReady] = useState(false);
-  const [error, setError] = useState("");
   const [captured, setCaptured] = useState(false);
+  const [error, setError] = useState("");
   const [selfie, setSelfie] = useState<string | null>(null);
 
   const videoConstraints = {
@@ -18,70 +17,49 @@ export default function WebcamCapture() {
     facingMode: "user",
   };
 
-  const handleUserMedia = () => {
-    setCameraReady(true);
-  };
-
-  const handleCapture = useCallback(() => {
+  const capture = useCallback(() => {
     if (webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
       if (imageSrc) {
-        localStorage.setItem("selfie", imageSrc);
+        localStorage.setItem("selfie", imageSrc); // ✅ SAVE SELFIE
         setSelfie(imageSrc);
         setCaptured(true);
-
-        // ✅ Short delay to ensure localStorage is saved before redirect
-        setTimeout(() => {
-          const check = localStorage.getItem("selfie");
-          console.log("📸 Saved selfie:", check?.substring(0, 100));
-          router.push("/result");
-        }, 300);
+        router.push("/result"); // ✅ Go to result
       } else {
-        setError("Could not capture image. Please try again.");
+        setError("Could not capture image. Try again.");
       }
     }
-  }, [router]);
-
-  useEffect(() => {
-    const storedSelfie = localStorage.getItem("selfie");
-    if (storedSelfie) {
-      setSelfie(storedSelfie);
-      setCaptured(true);
-    }
-  }, []);
+  }, [webcamRef]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">📸 Take a Selfie</h1>
+    <div className="flex flex-col items-center justify-center p-4">
+      <h2 className="text-2xl font-bold mb-4">📸 Capture Your Selfie</h2>
 
-      {cameraReady ? (
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          videoConstraints={videoConstraints}
-          className="rounded shadow-lg mb-4"
-        />
+      {!captured ? (
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={videoConstraints}
+            onUserMedia={() => console.log("Webcam ready")}
+            className="rounded-lg"
+          />
+          <button
+            onClick={capture}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Capture Selfie
+          </button>
+        </>
       ) : (
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          videoConstraints={videoConstraints}
-          onUserMedia={handleUserMedia}
-          className="rounded shadow-lg mb-4"
-        />
+        <>
+          <img src={selfie!} alt="Captured selfie" className="rounded-lg mb-4" />
+          <p className="text-green-600 font-medium">Selfie captured! Redirecting...</p>
+        </>
       )}
 
-      <button
-        onClick={handleCapture}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded disabled:opacity-50"
-        disabled={!cameraReady || captured}
-      >
-        {captured ? "✅ Captured!" : "📸 Capture"}
-      </button>
-
-      {error && <p className="text-red-500 mt-4">{error}</p>}
+      {error && <p className="text-red-600 mt-4">{error}</p>}
     </div>
   );
 }
