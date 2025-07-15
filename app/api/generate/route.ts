@@ -1,42 +1,35 @@
 import { NextResponse } from 'next/server';
-import { uploadImageToCloudinary } from '../../../utils/cloudinary';
+import { uploadToCloudinary } from '../../../utils/cloudinary';
 import { runSDXL, runFaceFusion } from '../../../utils/replicate';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { quizAnswers, selfie } = body;
+    const { quizAnswers, selfieDataUrl } = await req.json();
 
-    // ✅ Validate inputs
-    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length < 5) {
-      console.error('❌ Invalid quizAnswers:', quizAnswers);
-      return NextResponse.json({ error: 'Invalid or missing quiz answers' }, { status: 400 });
+    console.log('✅ Incoming quizAnswers:', quizAnswers);
+    console.log('✅ Incoming selfieDataUrl:', selfieDataUrl?.substring(0, 50));
+
+    if (!quizAnswers || !selfieDataUrl) {
+      console.error('❌ Missing input data', { quizAnswers, selfieDataUrl });
+      return NextResponse.json({ error: 'Missing input data' }, { status: 400 });
     }
 
-    if (!selfie || typeof selfie !== 'string' || !selfie.startsWith('data:image')) {
-      console.error('❌ Invalid selfie:', selfie?.substring(0, 50));
-      return NextResponse.json({ error: 'Invalid or missing selfie image' }, { status: 400 });
-    }
+    // Upload selfie to Cloudinary
+    const uploadedSelfieUrl = await uploadToCloudinary(selfieDataUrl);
+    console.log('☁️ Uploaded selfie URL:', uploadedSelfieUrl);
 
-    // 🌩 Upload selfie to Cloudinary
-    const selfieUrl = await uploadImageToCloudinary(selfie);
-    console.log('✅ Uploaded selfie to Cloudinary:', selfieUrl);
+    // Run SDXL to generate fantasy background image
+    const fantasyImageUrl = await runSDXL(quizAnswers);
+    console.log('🎨 SDXL image URL:', fantasyImageUrl);
 
-    // 🎨 Run SDXL
-    const fantasyPrompt = `a fantasy world with ${quizAnswers.join(', ')}, epic cinematic lighting, front-facing human character, vivid colors`;
-    const fantasyImage = await runSDXL(fantasyPrompt);
-    console.log('✅ SDXL fantasy image URL:', fantasyImage);
+    // Run FaceFusion to merge the face
+    const finalImageUrl = await runFaceFusion(uploadedSelfieUrl, fantasyImageUrl);
+    console.log('🧠 Final image URL:', finalImageUrl);
 
-    // 🧠 Face Fusion
-    const finalImage = await runFaceFusion({
-      template: fantasyImage,
-      user: selfieUrl,
-    });
-    console.log('✅ Final merged image URL:', finalImage);
+    return NextResponse.json({ imageUrl: finalImageUrl }, { status: 200 });
 
-    return NextResponse.json({ url: finalImage });
-  } catch (err: any) {
-    console.error('❌ API Error:', err.message);
-    return NextResponse.json({ error: 'Something went wrong in /api/generate' }, { status: 500 });
+  } catch (error) {
+    console.error('🔥 Error in /api/generate:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
