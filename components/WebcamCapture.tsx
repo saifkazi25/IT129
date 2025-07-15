@@ -1,22 +1,15 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Webcam from 'react-webcam';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // ✅ Avoid TS error by using any
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    const quizAnswers = localStorage.getItem('quizAnswers');
-    if (!quizAnswers) {
-      console.warn('🔁 Redirecting to quiz: no quizAnswers found');
-      router.push('/');
-    }
-  }, [router]);
+  const [uploading, setUploading] = useState(false);
 
   const capture = () => {
     if (!cameraReady || !webcamRef.current) {
@@ -25,14 +18,15 @@ export default function WebcamCapture() {
     }
 
     const imageSrc = webcamRef.current.getScreenshot();
+
     if (!imageSrc) {
       setError('Could not capture selfie. Please allow camera access and try again.');
       return;
     }
 
     try {
-      localStorage.setItem('selfie', imageSrc);
-      console.log('📸 Saved selfie to localStorage');
+      localStorage.setItem('selfie', imageSrc); // base64 image
+      console.log('✅ Saved selfie to localStorage:', imageSrc.substring(0, 50));
       router.push('/result');
     } catch (err) {
       console.error('❌ Failed to save selfie:', err);
@@ -55,9 +49,10 @@ export default function WebcamCapture() {
 
       <button
         onClick={capture}
+        disabled={uploading}
         className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
       >
-        Capture & Generate
+        {uploading ? 'Uploading...' : 'Capture & Generate'}
       </button>
 
       {error && <p className="text-red-500 mt-4">{error}</p>}
