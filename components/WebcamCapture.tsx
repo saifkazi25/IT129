@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // ✅ FIXED typing
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const [captured, setCaptured] = useState(false);
   const [error, setError] = useState("");
@@ -18,10 +18,25 @@ export default function WebcamCapture() {
   };
 
   const capture = useCallback(() => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    console.log("📸 imageSrc captured:", imageSrc?.substring(0, 100)); // debug log
+    const webcam = webcamRef.current;
+    if (!webcam) {
+      console.error("❌ Webcam ref is null");
+      setError("Webcam not ready");
+      return;
+    }
 
-    if (imageSrc) {
+    const imageSrc = webcam.getScreenshot();
+
+    console.log("📸 Attempting to capture selfie...");
+    if (!imageSrc) {
+      console.error("❌ getScreenshot() returned null");
+      setError("Could not capture selfie. Please try again.");
+      return;
+    }
+
+    console.log("✅ Screenshot captured:", imageSrc.substring(0, 100));
+
+    try {
       localStorage.setItem("selfie", imageSrc);
       console.log("✅ Selfie saved to localStorage");
 
@@ -29,12 +44,11 @@ export default function WebcamCapture() {
       setCaptured(true);
 
       setTimeout(() => {
-        console.log("➡️ Navigating to /result");
         router.push("/result");
       }, 500);
-    } else {
-      console.error("❌ Failed to capture selfie — imageSrc is null");
-      setError("Failed to capture image. Please try again.");
+    } catch (e) {
+      console.error("❌ Failed to save selfie to localStorage:", e);
+      setError("Failed to save selfie. Please try again.");
     }
   }, [router]);
 
@@ -45,8 +59,8 @@ export default function WebcamCapture() {
       {!captured ? (
         <>
           <Webcam
-            audio={false}
             ref={webcamRef}
+            audio={false}
             screenshotFormat="image/jpeg"
             videoConstraints={videoConstraints}
             onUserMedia={() => console.log("🎥 Webcam ready")}
@@ -61,8 +75,8 @@ export default function WebcamCapture() {
         </>
       ) : (
         <>
-          <img src={selfie!} alt="Your Selfie" className="rounded-lg mb-4 max-w-sm" />
-          <p className="text-green-600 font-medium">Captured! Heading to /result...</p>
+          <img src={selfie!} alt="Captured selfie" className="rounded-lg mb-4 max-w-sm" />
+          <p className="text-green-600 font-medium">Captured! Redirecting...</p>
         </>
       )}
 
