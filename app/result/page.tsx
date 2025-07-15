@@ -1,49 +1,50 @@
+// app/result/page.tsx
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 export default function ResultPage() {
-  const router = useRouter();
+  const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
-  const [finalImage, setFinalImage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchFantasyImage = async () => {
+      const quizAnswersRaw = localStorage.getItem('quizAnswers');
+      const selfieDataUrl = localStorage.getItem('selfie');
+
+      if (!quizAnswersRaw || !selfieDataUrl) {
+        console.error('Missing quiz or selfie data. Redirecting...');
+        router.push('/');
+        return;
+      }
+
       try {
-        const quizDataRaw = localStorage.getItem('quizData');
-        const selfieDataUrl = localStorage.getItem('selfieDataUrl');
-
-        if (!quizDataRaw || !selfieDataUrl) {
-          console.warn('Missing quiz or selfie data. Redirecting...');
-          router.push('/');
-          return;
-        }
-
-        const quizData = JSON.parse(quizDataRaw);
+        const quizAnswers = JSON.parse(quizAnswersRaw);
 
         const response = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            answers: quizData,
+            answers: quizAnswers,
             selfie: selfieDataUrl,
           }),
         });
 
-        const result = await response.json();
-
-        if (result.error) {
-          setError(result.error);
-        } else {
-          setFinalImage(result.output);
+        if (!response.ok) {
+          console.error('API responded with error', response.status);
+          router.push('/');
+          return;
         }
-      } catch (err: any) {
-        setError('Failed to generate image.');
-      } finally {
+
+        const data = await response.json();
+        setImageUrl(data.imageUrl);
         setLoading(false);
+      } catch (err) {
+        console.error('Error generating image:', err);
+        router.push('/');
       }
     };
 
@@ -52,39 +53,24 @@ export default function ResultPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black text-white">
-        <p className="text-xl">🧠 Loading your fantasy...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-red-100 text-red-800">
-        <p>Error: {error}</p>
-      </div>
-    );
-  }
-
-  if (!finalImage) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-white">
-        <p>No image found.</p>
+      <div className="flex items-center justify-center h-screen bg-black text-white">
+        <h1 className="text-2xl animate-pulse">🔮 Generating Your Fantasy...</h1>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
-      <h1 className="text-2xl font-bold mb-4">✨ Your Fantasy Awaits</h1>
-      <Image
-        src={finalImage}
-        alt="Your Fantasy World"
-        width={512}
-        height={512}
-        className="rounded-xl shadow-lg"
-      />
+      <h1 className="text-2xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
+      <img src={imageUrl} alt="Fantasy Result" className="max-w-full max-h-[80vh] rounded-xl shadow-lg" />
+      <button
+        className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded-lg shadow-md hover:bg-gray-300"
+        onClick={() => router.push('/')}
+      >
+        🔁 Try Again
+      </button>
     </div>
   );
 }
+
 
