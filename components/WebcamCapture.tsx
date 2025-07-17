@@ -1,28 +1,37 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import Webcam, { WebcamProps } from "react-webcam";
+import React, { useRef, useState, useCallback } from "react";
+import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
+const videoConstraints = {
+  width: 640,
+  height: 480,
+  facingMode: "user",
+};
+
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<typeof Webcam | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const capture = async () => {
+  const capture = useCallback(async () => {
     if (!webcamRef.current) return;
 
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) {
-      setError("Could not capture image.");
+    const screenshot = webcamRef.current.getScreenshot();
+    if (!screenshot) {
+      setError("Could not capture image. Please try again.");
       return;
     }
 
     setUploading(true);
+
     try {
       const formData = new FormData();
-      formData.append("file", imageSrc);
+      const blob = await fetch(screenshot).then((res) => res.blob());
+
+      formData.append("file", blob);
       formData.append("upload_preset", "infinite_tsukuyomi");
 
       const cloudName = "djm1jppes";
@@ -34,57 +43,40 @@ export default function WebcamCapture() {
       });
 
       const data = await response.json();
-      const selfieUrl = data?.secure_url;
 
-      if (!selfieUrl) {
-        throw new Error("Upload failed or selfieUrl missing");
-      }
-
-      console.log("✅ Cloudinary URL:", selfieUrl);
-      localStorage.setItem("selfieUrl", selfieUrl);
-
-      console.log("🧠 Stored in localStorage:", {
-        selfieUrl: localStorage.getItem("selfieUrl"),
-        quizAnswers: localStorage.getItem("quizAnswers"),
-      });
-
-      setTimeout(() => {
+      if (data.secure_url) {
+        localStorage.setItem("selfieUrl", data.secure_url);
+        console.log("✅ Uploaded selfie to Cloudinary:", data.secure_url);
         router.push("/result");
-      }, 300);
+      } else {
+        throw new Error("Upload failed");
+      }
     } catch (err) {
-      console.error("Upload error:", err);
-      setError("Failed to upload selfie. Please try again.");
+      console.error("❌ Error uploading selfie:", err);
+      setError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
-  };
-
-  const videoConstraints: WebcamProps["videoConstraints"] = {
-    width: 640,
-    height: 480,
-    facingMode: "user",
-  };
+  }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
       <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
-        className="rounded-lg border shadow-lg"
+        className="rounded-xl border border-gray-300"
       />
-
       <button
         onClick={capture}
         disabled={uploading}
-        className="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
       >
-        {uploading ? "Uploading..." : "Capture Selfie"}
+        {uploading ? "Uploading..." : "Capture & Continue"}
       </button>
+      {error && <p className="text-red-500 mt-2">{error}</p>}
     </div>
   );
 }
