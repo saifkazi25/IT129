@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<import("react-webcam").default | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -21,7 +21,6 @@ export default function WebcamCapture() {
 
     setUploading(true);
     try {
-      // Upload to Cloudinary
       const formData = new FormData();
       formData.append("file", imageSrc);
       formData.append("upload_preset", "infinite_tsukuyomi");
@@ -37,19 +36,17 @@ export default function WebcamCapture() {
       const selfieUrl = data?.secure_url;
 
       if (!selfieUrl) {
-        throw new Error("❌ Upload failed or selfieUrl missing");
+        throw new Error("Upload failed or selfieUrl missing");
       }
 
       console.log("✅ Cloudinary URL:", selfieUrl);
       localStorage.setItem("selfieUrl", selfieUrl);
 
-      // ✅ Confirm it worked
       console.log("🧠 Stored in localStorage:", {
         selfieUrl: localStorage.getItem("selfieUrl"),
         quizAnswers: localStorage.getItem("quizAnswers"),
       });
 
-      // ✅ Add small delay to make sure storage is ready before redirect
       setTimeout(() => {
         router.push("/result");
       }, 300);
