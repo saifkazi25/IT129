@@ -2,15 +2,16 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
-import axios from "axios";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // FIXED: use 'any' to avoid TS error
   const router = useRouter();
+
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
-  const [uploading, setUploading] = useState(false);
+  const [captured, setCaptured] = useState(false);
 
   const videoConstraints = {
     width: 640,
@@ -18,67 +19,63 @@ export default function WebcamCapture() {
     facingMode: "user",
   };
 
-  const captureAndUpload = async () => {
-    if (!webcamRef.current) return;
-
-    const screenshot = webcamRef.current.getScreenshot();
-    if (!screenshot) {
-      setError("Failed to capture selfie.");
+  const handleCapture = async () => {
+    if (!webcamRef.current) {
+      setError("Webcam not ready.");
       return;
     }
 
-    setUploading(true);
+    const imageSrc = webcamRef.current.getScreenshot();
+
+    if (!imageSrc) {
+      setError("Failed to capture image.");
+      return;
+    }
+
+    setCaptured(true);
     try {
-      const formData = new FormData();
-      formData.append("file", screenshot);
-      formData.append("upload_preset", "infinite_tsukuyomi");
+      const uploadResponse = await axios.post("/api/upload", {
+        image: imageSrc,
+      });
 
-      const cloudName = "djm1jppes";
-      const response = await axios.post(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        formData
-      );
+      const { secure_url } = uploadResponse.data;
 
-      const imageUrl = response.data.secure_url;
-      localStorage.setItem("selfieUrl", imageUrl);
+      if (!secure_url) {
+        throw new Error("Upload failed.");
+      }
+
+      localStorage.setItem("selfieUrl", secure_url);
       router.push("/result");
     } catch (err) {
-      console.error("Upload failed:", err);
+      console.error("Error uploading image:", err);
       setError("Image upload failed.");
-    } finally {
-      setUploading(false);
     }
   };
 
   useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then(() => setCameraReady(true))
-      .catch(() => setError("Camera access denied."));
+    setCameraReady(true);
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">Take a Selfie</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-4">📸 Capture Your Selfie</h1>
 
-      {cameraReady && webcamRef ? (
+      {cameraReady && (
         <Webcam
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
           videoConstraints={videoConstraints}
-          className="rounded-lg shadow-md mb-4"
+          className="rounded-lg border shadow-md"
         />
-      ) : (
-        <p>Loading camera...</p>
       )}
 
       <button
-        onClick={captureAndUpload}
-        disabled={!cameraReady || uploading}
-        className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 disabled:opacity-50"
+        onClick={handleCapture}
+        className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        disabled={captured}
       >
-        {uploading ? "Uploading..." : "Capture & Continue"}
+        {captured ? "Captured!" : "Capture & Continue"}
       </button>
 
       {error && <p className="text-red-600 mt-4">{error}</p>}
