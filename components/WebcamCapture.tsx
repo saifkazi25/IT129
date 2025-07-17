@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import Webcam from "react-webcam";
+import Webcam, { WebcamProps } from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<import("react-webcam").default | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function WebcamCapture() {
 
       const cloudName = "djm1jppes";
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
       const response = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
@@ -58,7 +59,7 @@ export default function WebcamCapture() {
     }
   };
 
-  const videoConstraints = {
+  const videoConstraints: WebcamProps["videoConstraints"] = {
     width: 640,
     height: 480,
     facingMode: "user",
