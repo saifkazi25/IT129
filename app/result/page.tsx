@@ -17,7 +17,7 @@ export default function ResultPage() {
       if (!quizAnswersRaw || !selfieUrl) {
         setError("Missing quiz answers or selfie.");
         setLoading(false);
-        router.push("/"); // redirect to quiz if missing data
+        router.push("/");
         return;
       }
 
@@ -76,8 +76,19 @@ export default function ResultPage() {
     );
   }
 
+  // ✅ This is where the JSX must be correctly wrapped and returned
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
       <h1 className="text-2xl font-bold mb-4">✨ Your Fantasy World Awaits</h1>
       {imageUrl ? (
-        <img src={imageUrl} alt="Fantasy Result" className="max-w-full rounded-xl shadow-xl
+        <img
+          src={imageUrl}
+          alt="Fantasy Result"
+          className="max-w-full rounded-xl shadow-xl"
+        />
+      ) : (
+        <p>No image received.</p>
+      )}
+    </div>
+  );
+}
