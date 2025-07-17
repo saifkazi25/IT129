@@ -1,8 +1,12 @@
 import axios from "axios";
 
-export async function uploadToCloudinary(base64Image: string) {
+export default async function uploadToCloudinary(base64Image: string) {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const uploadPreset = "infinite_tsukuyomi";
+
+  if (!cloudName) {
+    throw new Error("Missing CLOUDINARY_CLOUD_NAME environment variable");
+  }
 
   const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
