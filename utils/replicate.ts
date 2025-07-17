@@ -1,5 +1,7 @@
-const replicate = require("node-fetch-replicate")({
-  auth: process.env.REPLICATE_API_TOKEN,
+import Replicate from "replicate";
+
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
 });
 
 export default replicate;
