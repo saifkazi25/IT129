@@ -19,23 +19,30 @@ export default function WebcamCapture() {
 
     try {
       const imageSrc = webcamRef.current.getScreenshot();
+
       if (!imageSrc) {
         setError("Could not capture image.");
         setLoading(false);
         return;
       }
 
-      // Upload to Cloudinary
-      const uploadedUrl = await uploadToCloudinary(imageSrc);
+      console.log("📸 Captured base64 selfie, starting Cloudinary upload...");
+      const selfieUrl = await uploadToCloudinary(imageSrc);
+      console.log("✅ Cloudinary Upload Complete:", selfieUrl);
 
-      // Save selfie URL in localStorage
-      localStorage.setItem("selfieUrl", uploadedUrl);
-      console.log("✅ Selfie uploaded to Cloudinary:", uploadedUrl);
+      localStorage.setItem("selfieUrl", selfieUrl);
+      console.log("✅ Saved selfieUrl to localStorage");
+
+      const savedQuiz = localStorage.getItem("quizAnswers");
+      if (!savedQuiz) {
+        setError("Quiz answers not found. Please go back.");
+        return;
+      }
 
       router.push("/result");
-    } catch (err: any) {
-      console.error("Error uploading selfie:", err);
-      setError("Failed to upload selfie.");
+    } catch (err) {
+      console.error("❌ Error uploading or saving selfie:", err);
+      setError("Failed to upload selfie. Please try again.");
     } finally {
       setLoading(false);
     }
