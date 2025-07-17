@@ -1,14 +1,15 @@
-import cloudinary from 'cloudinary';
+import axios from "axios";
 
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
-});
+export async function uploadToCloudinary(base64Image: string) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = "infinite_tsukuyomi";
 
-export async function uploadToCloudinary(dataUrl: string) {
-  const res = await cloudinary.v2.uploader.upload(dataUrl, {
-    folder: 'infinite-tsukuyomi',
-  });
-  return res.secure_url;
+  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+  const formData = new FormData();
+  formData.append("file", base64Image);
+  formData.append("upload_preset", uploadPreset);
+
+  const response = await axios.post(url, formData);
+  return response.data.secure_url;
 }
