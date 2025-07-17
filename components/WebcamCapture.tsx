@@ -2,7 +2,6 @@
 
 import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
-import type { Webcam as WebcamType } from "react-webcam";
 import { useRouter } from "next/navigation";
 
 const videoConstraints = {
@@ -12,7 +11,7 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<WebcamType | null>(null);
+  const webcamRef = useRef<any>(null); // 👈 FIXED HERE
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +55,6 @@ export default function WebcamCapture() {
       localStorage.setItem("selfieUrl", cloudinaryUrl);
       console.log("✅ Selfie URL saved:", cloudinaryUrl);
 
-      // Delay to allow storage to complete
       setTimeout(() => {
         router.push("/result");
       }, 500);
