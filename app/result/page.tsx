@@ -1,78 +1,78 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
 export default function ResultPage() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fantasyImage, setFantasyImage] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchImage = async () => {
+    const generateFantasy = async () => {
       try {
-        const storedAnswers = localStorage.getItem("quizAnswers");
-        const storedSelfieUrl = localStorage.getItem("selfieUrl");
+        const storedQuiz = localStorage.getItem("quizAnswers");
+        const storedSelfie = localStorage.getItem("selfieUrl");
 
-        console.log("🧠 quizAnswers from localStorage:", storedAnswers);
-        console.log("📸 selfieUrl from localStorage:", storedSelfieUrl);
+        const quizAnswers = storedQuiz ? JSON.parse(storedQuiz) : null;
+        const selfieUrl = storedSelfie ?? null;
 
-        if (!storedAnswers || !storedSelfieUrl) {
+        console.log("🧠 quizAnswers from localStorage:", quizAnswers);
+        console.log("📸 selfieUrl from localStorage:", selfieUrl);
+
+        if (!quizAnswers || !Array.isArray(quizAnswers) || !selfieUrl) {
           setError("Missing quiz answers or selfie. Please restart the experience.");
           return;
         }
-
-        const quizAnswers = JSON.parse(storedAnswers);
 
         const res = await fetch("/api/generate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            quizAnswers,
-            selfieUrl: storedSelfieUrl,
-          }),
+          body: JSON.stringify({ quizAnswers, selfieUrl }),
         });
 
-        const data = await res.json();
-
         if (!res.ok) {
-          setError(data.error || "Something went wrong.");
-          return;
+          throw new Error("Image generation failed.");
         }
 
-        setImageUrl(data.image);
+        const data = await res.json();
+        setFantasyImage(data.image);
+      } catch (err: any) {
+        console.error("❌ Generation error:", err);
+        setError(err.message || "Something went wrong.");
+      } finally {
         setLoading(false);
-      } catch (err) {
-        console.error("Error generating image:", err);
-        setError("An unexpected error occurred.");
       }
     };
 
-    fetchImage();
+    generateFantasy();
   }, []);
 
-  if (error) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center text-red-600 text-center p-4">
-        <h1 className="text-3xl font-bold mb-4">✨ Your Fantasy Awaits</h1>
-        <p>{error}</p>
-      </main>
-    );
-  }
-
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center text-center p-4">
-        <p className="text-xl">✨ Summoning your dream world...</p>
-      </main>
-    );
-  }
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      <h1 className="text-3xl font-bold mb-6">✨ Here is Your Fantasy</h1>
-      {imageUrl && <img src={imageUrl} alt="Fantasy Result" className="rounded-xl shadow-lg w-[90%] max-w-2xl" />}
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-3xl font-bold mb-6">✨ Your Fantasy Awaits</h1>
+
+      {loading && <p className="text-lg">Summoning your fantasy...</p>}
+
+      {error && (
+        <p className="text-red-500 text-center max-w-md">
+          {error}
+        </p>
+      )}
+
+      {fantasyImage && (
+        <div className="mt-6">
+          <Image
+            src={fantasyImage}
+            alt="Fantasy Image"
+            width={512}
+            height={512}
+            className="rounded-xl shadow-lg"
+          />
+        </div>
+      )}
     </main>
   );
 }
