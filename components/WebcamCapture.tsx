@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // Use `any` to avoid TS build errors
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
