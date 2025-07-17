@@ -1,74 +1,70 @@
 "use client";
 
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState } from "react";
 import Webcam from "react-webcam";
+import axios from "axios";
 import { useRouter } from "next/navigation";
-import uploadToCloudinary from "../utils/cloudinary";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null);
+  const webcamRef = useRef<Webcam>(null);
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const capture = useCallback(async () => {
+  const capture = async () => {
     if (!webcamRef.current) return;
+    const imageSrc = webcamRef.current.getScreenshot();
 
-    setLoading(true);
-    setError("");
+    if (!imageSrc) {
+      alert("Failed to capture image.");
+      return;
+    }
 
     try {
-      const imageSrc = webcamRef.current.getScreenshot();
+      setUploading(true);
 
-      if (!imageSrc) {
-        setError("Could not capture image.");
-        setLoading(false);
-        return;
-      }
+      // Upload to Cloudinary
+      const formData = new FormData();
+      formData.append("file", imageSrc);
+      formData.append("upload_preset", "infinite_tsukuyomi");
 
-      console.log("📸 Captured base64 selfie, starting Cloudinary upload...");
-      const selfieUrl = await uploadToCloudinary(imageSrc);
-      console.log("✅ Cloudinary Upload Complete:", selfieUrl);
+      const cloudName = "djm1jppes"; // your Cloudinary cloud name
+      const response = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        formData
+      );
 
+      const selfieUrl = response.data.secure_url;
+
+      // Save to localStorage
       localStorage.setItem("selfieUrl", selfieUrl);
-      console.log("✅ Saved selfieUrl to localStorage");
+      console.log("✅ Saved selfieUrl to localStorage:", selfieUrl);
 
-      const savedQuiz = localStorage.getItem("quizAnswers");
-      if (!savedQuiz) {
-        setError("Quiz answers not found. Please go back.");
-        return;
-      }
-
+      // Redirect to result
       router.push("/result");
     } catch (err) {
-      console.error("❌ Error uploading or saving selfie:", err);
-      setError("Failed to upload selfie. Please try again.");
+      console.error("Selfie upload failed:", err);
+      alert("Failed to upload selfie.");
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
-  }, [router]);
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
+    <div className="flex flex-col items-center gap-4">
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        className="rounded-lg shadow-md"
-        videoConstraints={{
-          width: 640,
-          height: 480,
-          facingMode: "user",
-        }}
+        width={320}
+        height={240}
       />
       <button
+        className="px-4 py-2 bg-blue-600 text-white rounded"
         onClick={capture}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-        disabled={loading}
+        disabled={uploading}
       >
-        {loading ? "Uploading..." : "Capture & Continue"}
+        {uploading ? "Uploading..." : "Capture & Continue"}
       </button>
-      {error && <p className="text-red-500 mt-2">{error}</p>}
     </div>
   );
 }
