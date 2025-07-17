@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
+import type { Webcam as WebcamType } from "react-webcam";
 import { useRouter } from "next/navigation";
 
 const videoConstraints = {
@@ -11,7 +12,7 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<WebcamType | null>(null);
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
