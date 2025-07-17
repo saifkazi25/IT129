@@ -1,80 +1,90 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
+const videoConstraints = {
+  width: 640,
+  height: 480,
+  facingMode: "user",
+};
+
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // ✅ FIXED: avoid type error
+  const webcamRef = useRef<Webcam | null>(null);
+  const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
 
-  const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (!imageSrc) {
-      setError("Selfie capture failed. Please try again.");
+  const capture = useCallback(async () => {
+    if (!webcamRef.current) {
+      setError("Webcam not ready.");
       return;
     }
 
-    setUploading(true);
-    uploadToCloudinary(imageSrc);
-  };
+    const imageSrc = webcamRef.current.getScreenshot();
 
-  const uploadToCloudinary = async (imageDataUrl: string) => {
+    if (!imageSrc) {
+      setError("Failed to capture image.");
+      return;
+    }
+
     try {
-      const data = new FormData();
-      data.append("file", imageDataUrl);
-      data.append("upload_preset", "infinite_tsukuyomi");
+      setUploading(true);
+      console.log("📸 Captured selfie image. Uploading to Cloudinary...");
 
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/djm1jppes/image/upload`,
+      const formData = new FormData();
+      formData.append("file", imageSrc);
+      formData.append("upload_preset", "infinite_tsukuyomi");
+
+      const response = await fetch(
+        "https://api.cloudinary.com/v1_1/djm1jppes/image/upload",
         {
           method: "POST",
-          body: data,
+          body: formData,
         }
       );
 
-      const json = await res.json();
-      if (json.secure_url) {
-        localStorage.setItem("selfieUrl", json.secure_url);
-        router.push("/result");
-      } else {
-        throw new Error("Upload failed.");
+      const data = await response.json();
+      const cloudinaryUrl = data.secure_url;
+
+      if (!cloudinaryUrl) {
+        throw new Error("❌ Cloudinary did not return a URL.");
       }
-    } catch (err: any) {
-      console.error("Upload error:", err);
-      setError("Selfie upload failed. Please try again.");
+
+      localStorage.setItem("selfieUrl", cloudinaryUrl);
+      console.log("✅ Selfie URL saved:", cloudinaryUrl);
+
+      // Delay to allow storage to complete
+      setTimeout(() => {
+        router.push("/result");
+      }, 500);
+    } catch (err) {
+      console.error("❌ Upload error:", err);
+      setError("Image upload failed.");
     } finally {
       setUploading(false);
     }
-  };
+  }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-white text-black">
-      <h1 className="text-2xl font-bold mb-4">📸 Capture Your Selfie</h1>
-
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+      <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        videoConstraints={{
-          width: 640,
-          height: 480,
-          facingMode: "user",
-        }}
-        className="rounded-lg shadow-md mb-4"
+        videoConstraints={videoConstraints}
+        className="rounded-lg mb-4"
       />
-
       <button
         onClick={capture}
         disabled={uploading}
-        className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
       >
         {uploading ? "Uploading..." : "Capture & Continue"}
       </button>
-
-      {error && <p className="text-red-600 mt-4">{error}</p>}
     </div>
   );
 }
