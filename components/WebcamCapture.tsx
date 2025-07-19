@@ -11,51 +11,34 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // ✅ Fixed type
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
 
-  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  const dataUrlToBlob = (dataUrl: string): Blob => {
-    const byteString = atob(dataUrl.split(',')[1]);
-    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: mimeString });
-  };
-
   const uploadToCloudinary = async (imageDataUrl: string): Promise<string> => {
-    const blob = dataUrlToBlob(imageDataUrl);
     const formData = new FormData();
-    formData.append("file", blob);
+    formData.append("file", imageDataUrl);
     formData.append("upload_preset", "infinite_tsukuyomi");
 
-    const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
+    const res = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
       method: "POST",
       body: formData,
     });
 
-    const data = await response.json();
-    console.log("🌥️ Cloudinary response:", data);
-
-    if (!data.secure_url) {
-      throw new Error("Cloudinary upload failed");
-    }
+    const data = await res.json();
+    if (!data.secure_url) throw new Error("❌ Cloudinary upload failed");
 
     return data.secure_url;
   };
 
-  const capture = useCallback(async () => {
+  const captureAndGenerate = useCallback(async () => {
     if (!webcamRef.current) return;
 
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
-      setError("Failed to capture image.");
+      setError("❌ Could not capture selfie.");
       return;
     }
 
@@ -63,59 +46,54 @@ export default function WebcamCapture() {
     setError("");
 
     try {
-      const cloudinaryUrl = await uploadToCloudinary(imageSrc);
-      localStorage.setItem("selfieUrl", cloudinaryUrl);
-      setSelfiePreview(cloudinaryUrl);
-      console.log("✅ Uploaded to Cloudinary:", cloudinaryUrl);
-    } catch (err) {
-      console.error("❌ Upload failed:", err);
-      setError("Upload failed. Try again.");
+      // Upload selfie to Cloudinary
+      const selfieUrl = await uploadToCloudinary(imageSrc);
+      console.log("✅ Uploaded selfie to Cloudinary:", selfieUrl);
+
+      // Grab quiz answers from localStorage
+      const quizRaw = localStorage.getItem("quizAnswers");
+      if (!quizRaw) throw new Error("❌ No quiz answers found");
+
+      const quizAnswers = JSON.parse(quizRaw);
+
+      // Submit to API directly
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quizAnswers, selfieUrl }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.imageUrl) throw new Error("❌ Image generation failed");
+
+      router.push(`/result?imageUrl=${encodeURIComponent(data.imageUrl)}`);
+    } catch (err: any) {
+      console.error("⚠️ Error:", err);
+      setError(err.message || "Something went wrong.");
     } finally {
       setUploading(false);
     }
-  }, []);
-
-  const goToResult = () => {
-    const selfieUrl = localStorage.getItem("selfieUrl");
-    if (!selfieUrl) {
-      setError("Selfie not uploaded yet.");
-      return;
-    }
-    router.push("/result");
-  };
+  }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6 text-black">
       <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
 
-      {!selfiePreview ? (
-        <>
-          <Webcam
-            audio={false}
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            videoConstraints={videoConstraints}
-            className="rounded shadow-md mb-4"
-          />
-          <button
-            onClick={capture}
-            disabled={uploading}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-          >
-            {uploading ? "Uploading..." : "Capture & Upload"}
-          </button>
-        </>
-      ) : (
-        <>
-          <img src={selfiePreview} alt="Selfie Preview" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
-          <button
-            onClick={goToResult}
-            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-          >
-            Continue to Result
-          </button>
-        </>
-      )}
+      <Webcam
+        ref={webcamRef}
+        audio={false}
+        screenshotFormat="image/jpeg"
+        videoConstraints={videoConstraints}
+        className="rounded-lg shadow-md mb-4"
+      />
+
+      <button
+        onClick={captureAndGenerate}
+        disabled={uploading}
+        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+      >
+        {uploading ? "Generating..." : "Capture & Generate"}
+      </button>
 
       {error && <p className="text-red-600 mt-3">{error}</p>}
     </div>
