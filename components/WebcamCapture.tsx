@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // FIXED TYPE
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -39,9 +39,7 @@ export default function WebcamCapture() {
 
       const data = await res.json();
 
-      if (!data.secure_url) {
-        throw new Error("Cloudinary upload failed");
-      }
+      if (!data.secure_url) throw new Error("Cloudinary upload failed");
 
       const uploadedUrl = data.secure_url;
       localStorage.setItem("selfieUrl", uploadedUrl);
