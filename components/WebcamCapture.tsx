@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // FIXED TYPE
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -28,8 +28,11 @@ export default function WebcamCapture() {
     setSelfiePreview(screenshot);
 
     try {
+      // Convert base64 screenshot to blob
+      const blob = await (await fetch(screenshot)).blob();
+
       const formData = new FormData();
-      formData.append("file", screenshot);
+      formData.append("file", blob);
       formData.append("upload_preset", "infinite_tsukuyomi");
 
       const res = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
@@ -39,17 +42,18 @@ export default function WebcamCapture() {
 
       const data = await res.json();
 
-      if (!data.secure_url) throw new Error("Cloudinary upload failed");
+      if (!data.secure_url) throw new Error("Upload failed");
 
-      const uploadedUrl = data.secure_url;
-      localStorage.setItem("selfieUrl", uploadedUrl);
+      const selfieUrl = data.secure_url;
+      localStorage.setItem("selfieUrl", selfieUrl);
 
-      setUploadStatus("Upload successful! Redirecting...");
+      setUploadStatus("Upload complete! Redirecting...");
+      
       setTimeout(() => {
         router.push("/result");
-      }, 1000);
-    } catch (error) {
-      console.error("Upload failed:", error);
+      }, 1500); // Add a short delay to let user see the "complete" message
+    } catch (err) {
+      console.error(err);
       setUploadStatus("Upload failed. Please try again.");
     } finally {
       setUploading(false);
@@ -57,32 +61,34 @@ export default function WebcamCapture() {
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center">
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
-        className="rounded-lg shadow-lg"
+        className="rounded-lg shadow-md"
       />
 
       {selfiePreview && (
         <img
           src={selfiePreview}
           alt="Selfie preview"
-          className="mt-4 rounded-lg w-64 h-auto"
+          className="mt-4 w-64 rounded-md border"
         />
       )}
 
       <button
         onClick={capture}
         disabled={uploading}
-        className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
       >
         {uploading ? "Uploading..." : "Capture Selfie & Generate"}
       </button>
 
-      {uploadStatus && <p className="mt-2 text-sm text-gray-600">{uploadStatus}</p>}
+      {uploadStatus && (
+        <p className="mt-2 text-sm text-gray-600">{uploadStatus}</p>
+      )}
     </div>
   );
 }
