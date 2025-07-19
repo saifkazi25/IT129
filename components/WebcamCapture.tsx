@@ -1,98 +1,81 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
+const videoConstraints = {
+  width: 640,
+  height: 480,
+  facingMode: "user",
+};
+
 export default function WebcamCapture() {
-  const webcamRef = useRef(null); // ✅ don't type as Webcam — it's a component, not a type
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
 
-  const videoConstraints = {
-    width: 640,
-    height: 480,
-    facingMode: "user",
-  };
-
-  const uploadToCloudinary = async (imageDataUrl: string): Promise<string | null> => {
-    const cloudName = "djm1jppes";
-    const uploadPreset = "infinite_tsukuyomi";
-
-    const formData = new FormData();
-    formData.append("file", imageDataUrl);
-    formData.append("upload_preset", uploadPreset);
+  const capture = useCallback(async () => {
+    if (!webcamRef.current) return;
+    const screenshot = webcamRef.current.getScreenshot();
+    if (!screenshot) return;
+    setUploading(true);
+    setSelfiePreview(screenshot);
 
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+      // Upload to Cloudinary
+      const formData = new FormData();
+      formData.append("file", screenshot);
+      formData.append("upload_preset", "infinite_tsukuyomi");
+
+      const res = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
-      if (data.secure_url) {
-        return data.secure_url;
-      } else {
-        console.error("❌ Cloudinary upload failed:", data);
-        return null;
-      }
-    } catch (error) {
-      console.error("❌ Upload error:", error);
-      return null;
-    }
-  };
+      const data = await res.json();
+      if (!data.secure_url) throw new Error("Failed to upload selfie to Cloudinary");
 
-  const capture = async () => {
-    if (!webcamRef.current) return;
+      const uploadedUrl = data.secure_url;
 
-    const webcamInstance = webcamRef.current as any;
-    const imageSrc = webcamInstance.getScreenshot();
-
-    if (!imageSrc) {
-      console.error("❌ Failed to capture image");
-      return;
-    }
-
-    setUploading(true);
-    setSelfiePreview(imageSrc);
-
-    const uploadedUrl = await uploadToCloudinary(imageSrc);
-    if (uploadedUrl) {
+      // Store URL in localStorage
       localStorage.setItem("selfieUrl", uploadedUrl);
-      router.push("/result");
-    } else {
-      alert("Failed to upload selfie. Please try again.");
-    }
 
-    setUploading(false);
-  };
+      // ✅ NOW redirect to result
+      router.push("/result");
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Failed to upload selfie. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
-      <h1 className="text-2xl font-bold mb-4">📸 Capture Your Selfie</h1>
-      {!selfiePreview ? (
-        <>
-          <Webcam
-            audio={false}
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            videoConstraints={videoConstraints}
-            className="rounded-lg shadow-md"
-          />
-          <button
-            onClick={capture}
-            disabled={uploading}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {uploading ? "Uploading..." : "Capture & Continue"}
-          </button>
-        </>
-      ) : (
-        <>
-          <img src={selfiePreview} alt="Selfie Preview" className="rounded-lg shadow-md mb-4" />
-          <p className="text-green-600">✅ Selfie captured and uploaded!</p>
-        </>
+    <div className="flex flex-col items-center p-4">
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        videoConstraints={videoConstraints}
+        className="rounded-lg shadow-md"
+      />
+
+      <button
+        onClick={capture}
+        disabled={uploading}
+        className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {uploading ? "Uploading..." : "Capture Selfie"}
+      </button>
+
+      {selfiePreview && (
+        <img
+          src={selfiePreview}
+          alt="Preview"
+          className="mt-4 w-48 h-auto rounded border border-gray-300"
+        />
       )}
     </div>
   );
