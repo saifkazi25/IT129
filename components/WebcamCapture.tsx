@@ -29,25 +29,22 @@ export default function WebcamCapture() {
     });
 
     const data = await response.json();
+    console.log("📤 Cloudinary Response:", data);
 
     if (!data.secure_url) {
-      throw new Error("Cloudinary upload failed.");
+      throw new Error("Cloudinary upload failed");
     }
 
     return data.secure_url;
   };
 
   const capture = useCallback(async () => {
-    if (!webcamRef.current) {
-      console.warn("❌ Webcam not ready.");
-      return;
-    }
+    if (!webcamRef.current) return;
 
     const imageSrc = webcamRef.current.getScreenshot();
-    console.log("📸 Captured selfie base64:", imageSrc?.slice(0, 100));
-
     if (!imageSrc) {
-      console.warn("❌ No image captured from webcam.");
+      console.error("❌ Failed to capture selfie");
+      setError("Selfie capture failed.");
       return;
     }
 
@@ -56,14 +53,12 @@ export default function WebcamCapture() {
 
     try {
       const cloudinaryUrl = await uploadToCloudinary(imageSrc);
-      console.log("✅ Cloudinary URL:", cloudinaryUrl);
-
       localStorage.setItem("selfieUrl", cloudinaryUrl);
       setSelfiePreview(cloudinaryUrl);
-      console.log("✅ Saved selfie URL to localStorage:", localStorage.getItem("selfieUrl"));
-    } catch (err: any) {
+      console.log("✅ Selfie saved to localStorage:", cloudinaryUrl);
+    } catch (err) {
       console.error("❌ Cloudinary Upload Error:", err);
-      setError("Failed to upload selfie. Try again.");
+      setError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -71,25 +66,22 @@ export default function WebcamCapture() {
 
   const goToResult = () => {
     const selfieUrl = localStorage.getItem("selfieUrl");
-    console.log("➡️ Proceeding to result with selfieUrl:", selfieUrl);
-
     if (!selfieUrl) {
       setError("Selfie not uploaded yet.");
       return;
     }
-
     router.push("/result");
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6 text-black">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
       <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
 
       {!selfiePreview ? (
         <>
           <Webcam
-            audio={false}
             ref={webcamRef}
+            audio={false}
             screenshotFormat="image/jpeg"
             videoConstraints={videoConstraints}
             className="rounded-lg shadow-md mb-4"
@@ -104,7 +96,7 @@ export default function WebcamCapture() {
         </>
       ) : (
         <>
-          <img src={selfiePreview} alt="Selfie" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
+          <img src={selfiePreview} alt="Your Selfie" className="rounded-lg shadow-md mb-4 max-w-md" />
           <button
             onClick={goToResult}
             className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
@@ -114,7 +106,7 @@ export default function WebcamCapture() {
         </>
       )}
 
-      {error && <p className="text-red-600 mt-3">{error}</p>}
+      {error && <p className="text-red-600 mt-4">{error}</p>}
     </div>
   );
 }
