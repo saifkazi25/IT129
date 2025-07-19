@@ -11,79 +11,91 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // 👈 FIXED HERE
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
+
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  const capture = useCallback(async () => {
-    if (!webcamRef.current) {
-      setError("Webcam not ready.");
-      return;
+  const uploadToCloudinary = async (imageDataUrl: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", imageDataUrl);
+    formData.append("upload_preset", "infinite_tsukuyomi"); // your unsigned preset
+
+    const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!data.secure_url) {
+      throw new Error("Failed to upload image to Cloudinary.");
     }
+
+    return data.secure_url;
+  };
+
+  const capture = useCallback(async () => {
+    if (!webcamRef.current) return;
 
     const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) return;
 
-    if (!imageSrc) {
-      setError("Failed to capture image.");
-      return;
-    }
+    setUploading(true);
+    setError("");
 
     try {
-      setUploading(true);
-      console.log("📸 Captured selfie image. Uploading to Cloudinary...");
-
-      const formData = new FormData();
-      formData.append("file", imageSrc);
-      formData.append("upload_preset", "infinite_tsukuyomi");
-
-      const response = await fetch(
-        "https://api.cloudinary.com/v1_1/djm1jppes/image/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-      const cloudinaryUrl = data.secure_url;
-
-      if (!cloudinaryUrl) {
-        throw new Error("❌ Cloudinary did not return a URL.");
-      }
-
+      const cloudinaryUrl = await uploadToCloudinary(imageSrc);
       localStorage.setItem("selfieUrl", cloudinaryUrl);
-      console.log("✅ Selfie URL saved:", cloudinaryUrl);
-
-      setTimeout(() => {
-        router.push("/result");
-      }, 500);
-    } catch (err) {
+      setSelfiePreview(cloudinaryUrl);
+      console.log("✅ Uploaded selfie to Cloudinary:", cloudinaryUrl);
+    } catch (err: any) {
+      setError("Error uploading selfie. Please try again.");
       console.error("❌ Upload error:", err);
-      setError("Image upload failed.");
     } finally {
       setUploading(false);
     }
-  }, [router]);
+  }, []);
+
+  const goToResult = () => {
+    router.push("/result");
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
       <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        videoConstraints={videoConstraints}
-        className="rounded-lg mb-4"
-      />
-      <button
-        onClick={capture}
-        disabled={uploading}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-      >
-        {uploading ? "Uploading..." : "Capture & Continue"}
-      </button>
+
+      {!selfiePreview ? (
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={videoConstraints}
+            className="rounded-lg shadow-md mb-4"
+          />
+          <button
+            onClick={capture}
+            disabled={uploading}
+            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            {uploading ? "Uploading..." : "Capture Selfie"}
+          </button>
+          {error && <p className="text-red-600 mt-2">{error}</p>}
+        </>
+      ) : (
+        <>
+          <img src={selfiePreview} alt="Your Selfie" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
+          <button
+            onClick={goToResult}
+            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          >
+            Continue to Fantasy World
+          </button>
+        </>
+      )}
     </div>
   );
 }
