@@ -11,16 +11,19 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // ✅ FIXED: removed invalid type usage
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
 
   const capture = useCallback(async () => {
     if (!webcamRef.current) return;
     const screenshot = webcamRef.current.getScreenshot();
     if (!screenshot) return;
+
     setUploading(true);
+    setUploadStatus("Uploading selfie...");
     setSelfiePreview(screenshot);
 
     try {
@@ -39,11 +42,13 @@ export default function WebcamCapture() {
       const uploadedUrl = data.secure_url;
       localStorage.setItem("selfieUrl", uploadedUrl);
 
-      // ✅ Navigate only after upload completes
-      router.push("/result");
+      setUploadStatus("Upload complete! Generating your fantasy...");
+      setTimeout(() => {
+        router.push("/result");
+      }, 1000); // small delay for smooth transition
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Failed to upload selfie. Please try again.");
+      setUploadStatus("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -64,8 +69,12 @@ export default function WebcamCapture() {
         disabled={uploading}
         className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
       >
-        {uploading ? "Uploading..." : "Capture Selfie"}
+        {uploading ? "Uploading..." : "Capture Selfie & Generate"}
       </button>
+
+      {uploadStatus && (
+        <p className="mt-3 text-sm text-gray-700">{uploadStatus}</p>
+      )}
 
       {selfiePreview && (
         <img
