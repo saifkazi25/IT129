@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
+import type { WebcamProps } from "react-webcam"; // Optional, only if customizing props
 import { useRouter } from "next/navigation";
 
 const videoConstraints = {
@@ -11,7 +12,7 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ FIXED LINE
   const router = useRouter();
 
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export default function WebcamCapture() {
   const uploadToCloudinary = async (imageDataUrl: string): Promise<string> => {
     const formData = new FormData();
     formData.append("file", imageDataUrl);
-    formData.append("upload_preset", "infinite_tsukuyomi"); // your unsigned preset
+    formData.append("upload_preset", "infinite_tsukuyomi");
 
     const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
       method: "POST",
