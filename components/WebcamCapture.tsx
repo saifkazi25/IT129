@@ -11,14 +11,13 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // ✅ Fixed type
   const router = useRouter();
 
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🛠️ FIX: Convert base64 to blob before uploading
   const dataUrlToBlob = (dataUrl: string): Blob => {
     const byteString = atob(dataUrl.split(',')[1]);
     const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
@@ -33,7 +32,7 @@ export default function WebcamCapture() {
   const uploadToCloudinary = async (imageDataUrl: string): Promise<string> => {
     const blob = dataUrlToBlob(imageDataUrl);
     const formData = new FormData();
-    formData.append("file", blob); // 🧠 use blob instead of base64
+    formData.append("file", blob);
     formData.append("upload_preset", "infinite_tsukuyomi");
 
     const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
@@ -65,7 +64,7 @@ export default function WebcamCapture() {
 
     try {
       const cloudinaryUrl = await uploadToCloudinary(imageSrc);
-      localStorage.setItem("selfieUrl", cloudinaryUrl); // 💾 Save to localStorage
+      localStorage.setItem("selfieUrl", cloudinaryUrl);
       setSelfiePreview(cloudinaryUrl);
       console.log("✅ Uploaded to Cloudinary:", cloudinaryUrl);
     } catch (err) {
