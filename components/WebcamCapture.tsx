@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef(null); // ✅ don't type as Webcam — it's a component, not a type
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
@@ -46,7 +46,9 @@ export default function WebcamCapture() {
   const capture = async () => {
     if (!webcamRef.current) return;
 
-    const imageSrc = webcamRef.current.getScreenshot();
+    const webcamInstance = webcamRef.current as any;
+    const imageSrc = webcamInstance.getScreenshot();
+
     if (!imageSrc) {
       console.error("❌ Failed to capture image");
       return;
