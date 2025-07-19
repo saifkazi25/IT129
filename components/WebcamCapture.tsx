@@ -38,19 +38,29 @@ export default function WebcamCapture() {
   };
 
   const capture = useCallback(async () => {
-    if (!webcamRef.current) return;
+    if (!webcamRef.current) {
+      console.warn("❌ Webcam not ready.");
+      return;
+    }
 
     const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return;
+    console.log("📸 Captured selfie base64:", imageSrc?.slice(0, 100));
+
+    if (!imageSrc) {
+      console.warn("❌ No image captured from webcam.");
+      return;
+    }
 
     setUploading(true);
     setError("");
 
     try {
       const cloudinaryUrl = await uploadToCloudinary(imageSrc);
+      console.log("✅ Cloudinary URL:", cloudinaryUrl);
+
       localStorage.setItem("selfieUrl", cloudinaryUrl);
       setSelfiePreview(cloudinaryUrl);
-      console.log("✅ Selfie uploaded to Cloudinary:", cloudinaryUrl);
+      console.log("✅ Saved selfie URL to localStorage:", localStorage.getItem("selfieUrl"));
     } catch (err: any) {
       console.error("❌ Cloudinary Upload Error:", err);
       setError("Failed to upload selfie. Try again.");
@@ -61,10 +71,13 @@ export default function WebcamCapture() {
 
   const goToResult = () => {
     const selfieUrl = localStorage.getItem("selfieUrl");
+    console.log("➡️ Proceeding to result with selfieUrl:", selfieUrl);
+
     if (!selfieUrl) {
       setError("Selfie not uploaded yet.");
       return;
     }
+
     router.push("/result");
   };
 
