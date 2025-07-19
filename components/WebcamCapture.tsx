@@ -11,16 +11,29 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
 
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
+  // 🛠️ FIX: Convert base64 to blob before uploading
+  const dataUrlToBlob = (dataUrl: string): Blob => {
+    const byteString = atob(dataUrl.split(',')[1]);
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  };
+
   const uploadToCloudinary = async (imageDataUrl: string): Promise<string> => {
+    const blob = dataUrlToBlob(imageDataUrl);
     const formData = new FormData();
-    formData.append("file", imageDataUrl);
+    formData.append("file", blob); // 🧠 use blob instead of base64
     formData.append("upload_preset", "infinite_tsukuyomi");
 
     const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
@@ -29,7 +42,7 @@ export default function WebcamCapture() {
     });
 
     const data = await response.json();
-    console.log("📤 Cloudinary Response:", data);
+    console.log("🌥️ Cloudinary response:", data);
 
     if (!data.secure_url) {
       throw new Error("Cloudinary upload failed");
@@ -43,8 +56,7 @@ export default function WebcamCapture() {
 
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
-      console.error("❌ Failed to capture selfie");
-      setError("Selfie capture failed.");
+      setError("Failed to capture image.");
       return;
     }
 
@@ -53,12 +65,12 @@ export default function WebcamCapture() {
 
     try {
       const cloudinaryUrl = await uploadToCloudinary(imageSrc);
-      localStorage.setItem("selfieUrl", cloudinaryUrl);
+      localStorage.setItem("selfieUrl", cloudinaryUrl); // 💾 Save to localStorage
       setSelfiePreview(cloudinaryUrl);
-      console.log("✅ Selfie saved to localStorage:", cloudinaryUrl);
+      console.log("✅ Uploaded to Cloudinary:", cloudinaryUrl);
     } catch (err) {
-      console.error("❌ Cloudinary Upload Error:", err);
-      setError("Upload failed. Please try again.");
+      console.error("❌ Upload failed:", err);
+      setError("Upload failed. Try again.");
     } finally {
       setUploading(false);
     }
@@ -74,29 +86,29 @@ export default function WebcamCapture() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-6">
       <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
 
       {!selfiePreview ? (
         <>
           <Webcam
-            ref={webcamRef}
             audio={false}
+            ref={webcamRef}
             screenshotFormat="image/jpeg"
             videoConstraints={videoConstraints}
-            className="rounded-lg shadow-md mb-4"
+            className="rounded shadow-md mb-4"
           />
           <button
             onClick={capture}
             disabled={uploading}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
           >
-            {uploading ? "Uploading..." : "Capture Selfie"}
+            {uploading ? "Uploading..." : "Capture & Upload"}
           </button>
         </>
       ) : (
         <>
-          <img src={selfiePreview} alt="Your Selfie" className="rounded-lg shadow-md mb-4 max-w-md" />
+          <img src={selfiePreview} alt="Selfie Preview" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
           <button
             onClick={goToResult}
             className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
@@ -106,7 +118,7 @@ export default function WebcamCapture() {
         </>
       )}
 
-      {error && <p className="text-red-600 mt-4">{error}</p>}
+      {error && <p className="text-red-600 mt-3">{error}</p>}
     </div>
   );
 }
