@@ -11,12 +11,13 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null); // ✅ Fixed type error
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
 
-  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [selfieUrlReady, setSelfieUrlReady] = useState(false);
 
   const uploadToCloudinary = async (imageDataUrl: string): Promise<string> => {
     const formData = new FormData();
@@ -45,14 +46,17 @@ export default function WebcamCapture() {
 
     setUploading(true);
     setError("");
+    setSelfieUrlReady(false);
 
     try {
       const cloudinaryUrl = await uploadToCloudinary(imageSrc);
+
       localStorage.setItem("selfieUrl", cloudinaryUrl);
       setSelfiePreview(cloudinaryUrl);
-      console.log("✅ Selfie uploaded to Cloudinary:", cloudinaryUrl);
+      setSelfieUrlReady(true);
+      console.log("✅ Selfie uploaded:", cloudinaryUrl);
     } catch (err: any) {
-      console.error("❌ Cloudinary Upload Error:", err);
+      console.error("❌ Cloudinary upload error:", err);
       setError("Failed to upload selfie. Try again.");
     } finally {
       setUploading(false);
@@ -91,10 +95,19 @@ export default function WebcamCapture() {
         </>
       ) : (
         <>
-          <img src={selfiePreview} alt="Selfie" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
+          <img
+            src={selfiePreview}
+            alt="Selfie"
+            className="rounded-lg shadow-lg w-full max-w-md mb-4"
+          />
           <button
             onClick={goToResult}
-            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+            disabled={!selfieUrlReady}
+            className={`${
+              selfieUrlReady
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-gray-400 cursor-not-allowed"
+            } text-white px-6 py-2 rounded`}
           >
             Continue to Result
           </button>
