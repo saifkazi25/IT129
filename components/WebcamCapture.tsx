@@ -4,21 +4,22 @@ import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
-const videoConstraints = {
-  width: 640,
-  height: 480,
-  facingMode: "user",
-};
-
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<string>("");
+
+  const videoConstraints = {
+    width: 640,
+    height: 480,
+    facingMode: "user",
+  };
 
   const capture = useCallback(async () => {
     if (!webcamRef.current) return;
+
     const screenshot = webcamRef.current.getScreenshot();
     if (!screenshot) return;
 
@@ -37,17 +38,20 @@ export default function WebcamCapture() {
       });
 
       const data = await res.json();
-      if (!data.secure_url) throw new Error("Upload failed");
+
+      if (!data.secure_url) {
+        throw new Error("Cloudinary upload failed");
+      }
 
       const uploadedUrl = data.secure_url;
       localStorage.setItem("selfieUrl", uploadedUrl);
 
-      setUploadStatus("Upload complete! Generating your fantasy...");
+      setUploadStatus("Upload successful! Redirecting...");
       setTimeout(() => {
         router.push("/result");
-      }, 1000); // small delay for smooth transition
-    } catch (err) {
-      console.error("Upload error:", err);
+      }, 1000);
+    } catch (error) {
+      console.error("Upload failed:", error);
       setUploadStatus("Upload failed. Please try again.");
     } finally {
       setUploading(false);
@@ -55,14 +59,22 @@ export default function WebcamCapture() {
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center p-4">
+    <div className="flex flex-col items-center">
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
-        className="rounded-lg shadow-md"
+        className="rounded-lg shadow-lg"
       />
+
+      {selfiePreview && (
+        <img
+          src={selfiePreview}
+          alt="Selfie preview"
+          className="mt-4 rounded-lg w-64 h-auto"
+        />
+      )}
 
       <button
         onClick={capture}
@@ -72,17 +84,7 @@ export default function WebcamCapture() {
         {uploading ? "Uploading..." : "Capture Selfie & Generate"}
       </button>
 
-      {uploadStatus && (
-        <p className="mt-3 text-sm text-gray-700">{uploadStatus}</p>
-      )}
-
-      {selfiePreview && (
-        <img
-          src={selfiePreview}
-          alt="Preview"
-          className="mt-4 w-48 h-auto rounded border border-gray-300"
-        />
-      )}
+      {uploadStatus && <p className="mt-2 text-sm text-gray-600">{uploadStatus}</p>}
     </div>
   );
 }
