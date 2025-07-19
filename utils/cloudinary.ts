@@ -1,15 +1,23 @@
-import axios from "axios";
-
-const CLOUD_NAME = "djm1jppes";
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = "infinite_tsukuyomi";
 
-export default async function uploadToCloudinary(base64Image: string) {
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+export const uploadImageToCloudinary = async (base64: string): Promise<string> => {
+  if (!CLOUD_NAME) throw new Error("Missing CLOUDINARY_CLOUD_NAME");
 
   const formData = new FormData();
-  formData.append("file", base64Image);
+  formData.append("file", base64);
   formData.append("upload_preset", UPLOAD_PRESET);
 
-  const response = await axios.post(url, formData);
-  return response.data.secure_url;
-}
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!data.secure_url) {
+    throw new Error("Cloudinary upload failed.");
+  }
+
+  return data.secure_url;
+};
