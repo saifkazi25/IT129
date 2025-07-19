@@ -2,7 +2,6 @@
 
 import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
-import type { WebcamProps } from "react-webcam"; // Optional, only if customizing props
 import { useRouter } from "next/navigation";
 
 const videoConstraints = {
@@ -12,7 +11,7 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null); // ✅ FIXED LINE
+  const webcamRef = useRef<InstanceType<typeof Webcam> | null>(null);
   const router = useRouter();
 
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
@@ -32,7 +31,7 @@ export default function WebcamCapture() {
     const data = await response.json();
 
     if (!data.secure_url) {
-      throw new Error("Failed to upload image to Cloudinary.");
+      throw new Error("Cloudinary upload failed.");
     }
 
     return data.secure_url;
@@ -51,21 +50,26 @@ export default function WebcamCapture() {
       const cloudinaryUrl = await uploadToCloudinary(imageSrc);
       localStorage.setItem("selfieUrl", cloudinaryUrl);
       setSelfiePreview(cloudinaryUrl);
-      console.log("✅ Uploaded selfie to Cloudinary:", cloudinaryUrl);
+      console.log("✅ Selfie uploaded to Cloudinary:", cloudinaryUrl);
     } catch (err: any) {
-      setError("Error uploading selfie. Please try again.");
-      console.error("❌ Upload error:", err);
+      console.error("❌ Cloudinary Upload Error:", err);
+      setError("Failed to upload selfie. Try again.");
     } finally {
       setUploading(false);
     }
   }, []);
 
   const goToResult = () => {
+    const selfieUrl = localStorage.getItem("selfieUrl");
+    if (!selfieUrl) {
+      setError("Selfie not uploaded yet.");
+      return;
+    }
     router.push("/result");
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6 text-black">
       <h1 className="text-2xl font-bold mb-4">📸 Take Your Selfie</h1>
 
       {!selfiePreview ? (
@@ -80,23 +84,24 @@ export default function WebcamCapture() {
           <button
             onClick={capture}
             disabled={uploading}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
           >
             {uploading ? "Uploading..." : "Capture Selfie"}
           </button>
-          {error && <p className="text-red-600 mt-2">{error}</p>}
         </>
       ) : (
         <>
-          <img src={selfiePreview} alt="Your Selfie" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
+          <img src={selfiePreview} alt="Selfie" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
           <button
             onClick={goToResult}
-            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
           >
-            Continue to Fantasy World
+            Continue to Result
           </button>
         </>
       )}
+
+      {error && <p className="text-red-600 mt-3">{error}</p>}
     </div>
   );
 }
