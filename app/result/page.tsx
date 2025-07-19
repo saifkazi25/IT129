@@ -9,23 +9,20 @@ export default function ResultPage() {
   const router = useRouter();
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    const waitForLocalStorageAndGenerate = async () => {
+    const loadData = async () => {
       const quizAnswersRaw = localStorage.getItem("quizAnswers");
       const selfieUrl = localStorage.getItem("selfieUrl");
 
-      const quizAnswers: string[] | null = quizAnswersRaw
-        ? JSON.parse(quizAnswersRaw)
-        : null;
+      console.log("🧠 quizAnswersRaw:", quizAnswersRaw);
+      console.log("📸 selfieUrl:", selfieUrl);
 
-      if (!quizAnswers || !selfieUrl) {
-        console.log("⏳ Waiting for data...", { quizAnswers, selfieUrl });
-        return; // Keep polling
+      if (!quizAnswersRaw || !selfieUrl) {
+        console.warn("❌ Missing required data, redirecting...", { quizAnswersRaw, selfieUrl });
+        router.push("/");
+        return;
       }
 
-      clearInterval(interval); // ✅ Stop polling
-      console.log("✅ Found quiz and selfie, generating image...");
+      const quizAnswers: string[] = JSON.parse(quizAnswersRaw);
 
       try {
         const response = await fetch("/api/generate", {
@@ -47,10 +44,9 @@ export default function ResultPage() {
       }
     };
 
-    interval = setInterval(waitForLocalStorageAndGenerate, 200);
-
-    // Cleanup if user leaves
-    return () => clearInterval(interval);
+    if (typeof window !== "undefined") {
+      setTimeout(loadData, 1000); // delay to ensure localStorage is populated
+    }
   }, [router]);
 
   return (
@@ -70,3 +66,4 @@ export default function ResultPage() {
     </div>
   );
 }
+
