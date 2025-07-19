@@ -11,7 +11,7 @@ const videoConstraints = {
 };
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<any>(null); // ✅ FIXED: removed invalid type usage
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
@@ -24,7 +24,6 @@ export default function WebcamCapture() {
     setSelfiePreview(screenshot);
 
     try {
-      // Upload to Cloudinary
       const formData = new FormData();
       formData.append("file", screenshot);
       formData.append("upload_preset", "infinite_tsukuyomi");
@@ -35,14 +34,12 @@ export default function WebcamCapture() {
       });
 
       const data = await res.json();
-      if (!data.secure_url) throw new Error("Failed to upload selfie to Cloudinary");
+      if (!data.secure_url) throw new Error("Upload failed");
 
       const uploadedUrl = data.secure_url;
-
-      // Store URL in localStorage
       localStorage.setItem("selfieUrl", uploadedUrl);
 
-      // ✅ NOW redirect to result
+      // ✅ Navigate only after upload completes
       router.push("/result");
     } catch (err) {
       console.error("Upload error:", err);
