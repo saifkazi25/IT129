@@ -1,68 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import replicate from "../../../utils/replicate";
-import uploadToCloudinary from "../../../utils/cloudinary";
+import { uploadImageToCloudinary } from "../../../utils/cloudinary";
+import { generateFantasyImage, mergeFace } from "../../../utils/replicate";
 
 export async function POST(req: NextRequest) {
   try {
-    const { quizAnswers, selfieUrl } = await req.json();
+    const body = await req.json();
+    const { quizAnswers, selfieUrl } = body;
 
-    if (!quizAnswers || !Array.isArray(quizAnswers) || !selfieUrl) {
-      return NextResponse.json({ error: "Missing input data" }, { status: 400 });
+    console.log("✅ Incoming data:", { quizAnswers, selfieUrl });
+
+    // Validation
+    if (
+      !Array.isArray(quizAnswers) ||
+      quizAnswers.length !== 7 ||
+      typeof selfieUrl !== "string" ||
+      !selfieUrl.startsWith("http")
+    ) {
+      console.error("❌ Invalid input data", { quizAnswers, selfieUrl });
+      return NextResponse.json({ error: "Missing quiz or selfie" }, { status: 400 });
     }
 
-    // Step 1: Generate fantasy image using SDXL (latest version)
-    const fantasyPrompt = `high-resolution concept art of a ${
-      quizAnswers[2]
-    } wearing ${quizAnswers[3]}, in a ${quizAnswers[4]} setting, theme: ${
-      quizAnswers[5]
-    }, powers: ${quizAnswers[6]}. Cinematic style, colorful fantasy world, sharp focus, full body, front-facing, eyes visible`;
+    // 1. Generate fantasy image from quiz
+    const fantasyPrompt = `A front-facing, ultra detailed cinematic fantasy scene with a ${quizAnswers[2]} in a ${quizAnswers[3]}, in a ${quizAnswers[4]} setting, inspired by ${quizAnswers[0]} vibes. Background: ${quizAnswers[1]}. Mood: ${quizAnswers[5]}, Element: ${quizAnswers[6]}.`;
+    const fantasyImageUrl = await generateFantasyImage(fantasyPrompt);
 
-    const sdxlOutput = await replicate.run(
-      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
-      {
-        input: {
-          prompt: fantasyPrompt,
-          width: 768,
-          height: 768,
-          refine: "expert_ensemble_refiner",
-          scheduler: "K_EULER",
-          lora_scale: 0.6,
-          num_outputs: 1,
-          guidance_scale: 7.5,
-          apply_watermark: false,
-          high_noise_frac: 0.8,
-          negative_prompt: "",
-          prompt_strength: 0.8,
-          num_inference_steps: 25
-        }
-      }
-    );
+    console.log("🎨 Fantasy Image URL:", fantasyImageUrl);
 
-    const fantasyImage = sdxlOutput?.[0];
-    if (!fantasyImage) {
-      return NextResponse.json({ error: "Failed to generate fantasy image." }, { status: 500 });
-    }
+    // 2. Merge face using FaceFusion
+    const mergedImageUrl = await mergeFace(selfieUrl, fantasyImageUrl);
 
-    // Step 2: Merge face with fantasy image using FaceFusion (latest version)
-    const faceFusionOutput = await replicate.run(
-      "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
-      {
-        input: {
-          user_image: selfieUrl,
-          template_image: fantasyImage
-        }
-      }
-    );
+    console.log("🧬 Final Merged Image URL:", mergedImageUrl);
 
-    const finalImage = faceFusionOutput?.[0];
-    if (!finalImage) {
-      return NextResponse.json({ error: "Face fusion failed." }, { status: 500 });
-    }
-
-    return NextResponse.json({ image: finalImage });
-  } catch (error) {
-    console.error("Error in /api/generate:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ imageUrl: mergedImageUrl });
+  } catch (err) {
+    console.error("🔥 API Error:", err);
+    return NextResponse.json({ error: "Image generation failed" }, { status: 500 });
   }
 }
+
 
