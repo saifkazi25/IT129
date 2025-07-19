@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
@@ -51,16 +51,22 @@ export default function WebcamCapture() {
       localStorage.setItem("selfieUrl", cloudinaryUrl);
       setSelfiePreview(cloudinaryUrl);
       console.log("✅ Selfie uploaded to Cloudinary:", cloudinaryUrl);
-
-      // ✅ Immediately redirect after successful upload
-      router.push("/result");
     } catch (err: any) {
       console.error("❌ Cloudinary Upload Error:", err);
       setError("Failed to upload selfie. Try again.");
     } finally {
       setUploading(false);
     }
-  }, [router]);
+  }, []);
+
+  const goToResult = () => {
+    const selfieUrl = localStorage.getItem("selfieUrl");
+    if (!selfieUrl) {
+      setError("Selfie not uploaded yet.");
+      return;
+    }
+    router.push("/result");
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6 text-black">
@@ -84,11 +90,15 @@ export default function WebcamCapture() {
           </button>
         </>
       ) : (
-        <img
-          src={selfiePreview}
-          alt="Selfie"
-          className="rounded-lg shadow-lg w-full max-w-md mb-4"
-        />
+        <>
+          <img src={selfiePreview} alt="Selfie" className="rounded-lg shadow-lg w-full max-w-md mb-4" />
+          <button
+            onClick={goToResult}
+            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+          >
+            Continue to Result
+          </button>
+        </>
       )}
 
       {error && <p className="text-red-600 mt-3">{error}</p>}
