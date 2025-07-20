@@ -1,68 +1,45 @@
-"use client";
+import { NextRequest, NextResponse } from "next/server";
+import { uploadImageToCloudinary } from "../../../utils/cloudinary";
+import { generateFantasyImage, mergeFaceWithFantasy } from "../../../utils/replicate";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { quizAnswers, selfieUrl } = body;
 
-export default function ResultPage() {
-  const router = useRouter();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState("Preparing your fantasy image...");
+    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
+      return NextResponse.json({ error: "Invalid quiz answers" }, { status: 400 });
+    }
 
-  useEffect(() => {
-    const generateImage = async () => {
-      const storedAnswers = localStorage.getItem("quizAnswers");
-      const storedSelfieUrl = localStorage.getItem("selfieUrl");
+    if (!selfieUrl || typeof selfieUrl !== "string") {
+      return NextResponse.json({ error: "Missing selfie URL" }, { status: 400 });
+    }
 
-      if (!storedAnswers || !storedSelfieUrl) {
-        setStatus("Missing data. Redirecting...");
-        setTimeout(() => router.push("/"), 2000);
-        return;
-      }
+    // Step 1: Generate fantasy image using SDXL
+    const fantasyPrompt = `A detailed fantasy scene based on the following traits: 
+      Theme: ${quizAnswers[0]},
+      Location: ${quizAnswers[1]},
+      Character: ${quizAnswers[2]},
+      Outfit: ${quizAnswers[3]},
+      Background: ${quizAnswers[4]},
+      Mood: ${quizAnswers[5]},
+      Power: ${quizAnswers[6]}. 
+      Include a clearly visible front-facing human figure, cinematic lighting, highly detailed art`;
 
-      try {
-        setStatus("Generating your fantasy...");
+    const fantasyImageUrl = await generateFantasyImage(fantasyPrompt);
+    if (!fantasyImageUrl) {
+      return NextResponse.json({ error: "Failed to generate fantasy image" }, { status: 500 });
+    }
 
-        const response = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            quizAnswers: JSON.parse(storedAnswers),
-            selfieUrl: storedSelfieUrl,
-          }),
-        });
+    // Step 2: Merge selfie with fantasy image using FaceFusion
+    const mergedImageUrl = await mergeFaceWithFantasy(selfieUrl, fantasyImageUrl);
+    if (!mergedImageUrl) {
+      return NextResponse.json({ error: "Face merge failed" }, { status: 500 });
+    }
 
-        if (!response.ok) {
-          throw new Error("Failed to generate image");
-        }
-
-        const data = await response.json();
-
-        if (data.image) {
-          setImageUrl(data.image);
-          setStatus("Your fantasy is ready!");
-        } else {
-          throw new Error("No image returned");
-        }
-      } catch (err) {
-        console.error("Generation Error:", err);
-        setStatus("Something went wrong. Please try again.");
-      }
-    };
-
-    generateImage();
-  }, [router]);
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-3xl font-bold mb-4 text-center">Infinite Tsukuyomi Result</h1>
-      <p className="text-gray-600 mb-4">{status}</p>
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt="Generated Fantasy"
-          className="w-full max-w-lg rounded-lg shadow-lg border"
-        />
-      )}
-    </div>
-  );
+    return NextResponse.json({ imageUrl: mergedImageUrl }, { status: 200 });
+  } catch (error) {
+    console.error("Error in /api/generate:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
