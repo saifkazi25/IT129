@@ -18,55 +18,62 @@ export default function WebcamCapture() {
   };
 
   const capture = useCallback(() => {
-    if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (imageSrc) {
-        setCaptured(true);
+    setCaptured(true);
 
-        const formData = new FormData();
-        formData.append("file", imageSrc);
-        formData.append("upload_preset", "infinite_tsukuyomi");
+    setTimeout(() => {
+      const imageSrc = webcamRef.current?.getScreenshot();
+      console.log("📸 Captured image:", imageSrc);
 
-        fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
-          method: "POST",
-          body: formData,
-        })
-          .then(res => res.json())
-          .then(async data => {
-            const selfieUrl = data.secure_url;
-            const quiz = localStorage.getItem("quizAnswers");
-
-            if (!quiz) {
-              setError("Missing quiz answers. Please restart.");
-              return;
-            }
-
-            const response = await fetch("/api/generate", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                quizAnswers: JSON.parse(quiz),
-                selfieUrl: selfieUrl,
-              }),
-            });
-
-            const result = await response.json();
-
-            if (result.outputUrl) {
-              localStorage.setItem("fantasyImageUrl", result.outputUrl);
-              router.push("/result");
-            } else {
-              setError("Image generation failed.");
-              setCaptured(false);
-            }
-          })
-          .catch(err => {
-            console.error("Upload or generation failed:", err);
-            setError("Something went wrong. Please try again.");
-            setCaptured(false);
-          });
+      if (!imageSrc) {
+        setError("Failed to capture selfie. Please try again.");
+        setCaptured(false);
+        return;
       }
-    }
+
+      const formData = new FormData();
+      formData.append("file", imageSrc);
+      formData.append("upload_preset", "infinite_tsukuyomi");
+
+      fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then(res => res.json())
+        .then(async data => {
+          console.log("☁️ Uploaded to Cloudinary:", data.secure_url);
+
+          const quiz = localStorage.getItem("quizAnswers");
+
+          if (!quiz) {
+            setError("Missing quiz answers. Please restart.");
+            return;
+          }
+
+          const response = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              quizAnswers: JSON.parse(quiz),
+              selfieUrl: data.secure_url,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.outputUrl) {
+            localStorage.setItem("fantasyImageUrl", result.outputUrl);
+            router.push("/result");
+          } else {
+            setError("Image generation failed.");
+            setCaptured(false);
+          }
+        })
+        .catch(err => {
+          console.error("Upload or generation failed:", err);
+          setError("Something went wrong. Please try again.");
+          setCaptured(false);
+        });
+    }, 500); // Delay to ensure camera renders
   }, [router]);
 
   useEffect(() => {
@@ -83,8 +90,8 @@ export default function WebcamCapture() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center">
-      {error && <p className="text-red-600">{error}</p>}
+    <div className="flex flex-col items-center p-4">
+      {error && <p className="text-red-600 mb-4">{error}</p>}
 
       {cameraReady ? (
         <>
@@ -108,7 +115,7 @@ export default function WebcamCapture() {
           {captured && <p className="text-green-600 mt-4">Generating your fantasy world...</p>}
         </>
       ) : (
-        <p>Loading camera...</p>
+        <p className="text-gray-700 text-lg mt-10">Loading camera...</p>
       )}
     </div>
   );
