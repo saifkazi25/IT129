@@ -5,8 +5,9 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<typeof Webcam | null>(null); // ✅ FIXED TYPE
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
+
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
 
@@ -16,17 +17,19 @@ export default function WebcamCapture() {
     facingMode: "user",
   };
 
-  const capture = useCallback(async () => {
+  const captureAndUpload = useCallback(async () => {
     if (!webcamRef.current) return;
 
     const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return alert("Failed to capture selfie.");
+    if (!imageSrc) {
+      alert("Failed to capture selfie. Try again.");
+      return;
+    }
 
     setUploading(true);
     setUploadStatus("Uploading selfie...");
 
     try {
-      // Upload to Cloudinary
       const formData = new FormData();
       formData.append("file", imageSrc);
       formData.append("upload_preset", "infinite_tsukuyomi");
@@ -41,39 +44,43 @@ export default function WebcamCapture() {
 
       const data = await response.json();
 
-      if (!data.secure_url) throw new Error("Upload failed");
-
-      localStorage.setItem("selfieUrl", data.secure_url);
-
-      setUploadStatus("Upload successful!");
-      router.push("/result");
-    } catch (err) {
-      console.error("Upload error:", err);
-      alert("Failed to upload selfie. Try again.");
+      if (data.secure_url) {
+        localStorage.setItem("selfieUrl", data.secure_url);
+        setUploadStatus("Upload complete! Redirecting...");
+        router.push("/result");
+      } else {
+        throw new Error("Upload failed. No secure_url returned.");
+      }
+    } catch (error) {
+      console.error("Cloudinary Upload Error:", error);
+      alert("Failed to upload selfie. Please try again.");
     } finally {
       setUploading(false);
     }
-  }, [webcamRef, router]);
+  }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-4 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <h1 className="text-3xl font-bold mb-4 text-center">Capture Your Selfie</h1>
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
-        className="rounded-xl border shadow"
+        className="rounded-lg shadow-md"
       />
       <button
-        onClick={capture}
+        onClick={captureAndUpload}
         disabled={uploading}
-        className={`px-4 py-2 rounded text-white ${
-          uploading ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+        className={`mt-4 px-6 py-2 rounded-lg font-semibold transition text-white ${
+          uploading
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-purple-600 hover:bg-purple-700"
         }`}
       >
-        {uploading ? "Uploading..." : "Capture & Generate My Fantasy"}
+        {uploading ? "Uploading Selfie..." : "Capture & Generate My Fantasy"}
       </button>
-      {uploadStatus && <p className="text-sm text-gray-600">{uploadStatus}</p>}
+      {uploadStatus && <p className="mt-2 text-sm text-gray-600">{uploadStatus}</p>}
     </div>
   );
 }
