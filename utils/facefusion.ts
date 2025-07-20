@@ -1,36 +1,32 @@
 import Replicate from "replicate";
 
+// Initialize Replicate client
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || "",
+  auth: process.env.REPLICATE_API_TOKEN as string,
 });
 
-export async function mergeFaceWithFantasy(selfieUrl: string, fantasyImageUrl: string): Promise<string | null> {
-  console.log("🧠 FaceFusion started");
-  console.log("📸 Selfie URL:", selfieUrl);
-  console.log("🎨 Fantasy Image URL:", fantasyImageUrl);
+// Exported function for FaceFusion
+export async function faceSwapWithFusion(baseImageUrl: string, faceImageUrl: string): Promise<string> {
+  const version =
+    "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7";
 
-  try {
-    const output = await replicate.run(
-      "lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7",
-      {
-        input: {
-          source_image: selfieUrl,
-          target_image: fantasyImageUrl,
-          face_enhancer: true,
-          similarity: 0.7,
-        },
-      }
-    );
+  const input = {
+    base_image: baseImageUrl,
+    face_image: faceImageUrl,
+    face_swap: true,
+    similarity_threshold: 0.5,
+    use_current_crop: true,
+  };
 
-    console.log("🧬 FaceFusion output:", output);
+  console.log("🧬 FaceFusion input:", input);
 
-    if (Array.isArray(output) && output.length > 0) {
-      return output[0] as string;
-    }
+  const output = await replicate.run(version, { input });
 
-    return null;
-  } catch (error: any) {
-    console.error("❌ FaceFusion failed:", error?.message || error);
-    throw new Error("Face merging failed");
+  console.log("🧑‍🚀 FaceFusion output:", output);
+
+  if (!output || !Array.isArray(output) || output.length === 0) {
+    throw new Error("No image returned from FaceFusion.");
   }
+
+  return output[0] as string;
 }
