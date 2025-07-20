@@ -5,67 +5,43 @@ import { useEffect, useState } from "react";
 export default function ResultPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchResult = async () => {
-      const quiz = localStorage.getItem("quizAnswers");
-      const selfieUrl = localStorage.getItem("selfieUrl");
+    const finalImage = localStorage.getItem("fantasyImageUrl");
 
-      if (!quiz || !selfieUrl) {
-        setError("Missing input data. Please restart the quiz.");
-        setLoading(false);
-        return;
-      }
+    if (finalImage) {
+      setImageUrl(finalImage);
+    }
 
-      try {
-        const res = await fetch("/api/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            quizAnswers: JSON.parse(quiz),
-            selfieUrl: selfieUrl,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (data.outputUrl) {
-          setImageUrl(data.outputUrl);
-        } else {
-          setError("Image generation failed.");
-        }
-      } catch (err) {
-        console.error(err);
-        setError("Something went wrong. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResult();
+    setLoading(false);
   }, []);
 
   if (loading) {
-    return <p className="text-center mt-10">Generating your fantasy world...</p>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-xl text-gray-700">Loading your fantasy world...</p>
+      </div>
+    );
   }
 
-  if (error) {
-    return <p className="text-red-600 text-center mt-10">{error}</p>;
+  if (!imageUrl) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 className="text-2xl font-semibold mb-4 text-red-600">Image Not Found</h1>
+        <p className="text-gray-700">It looks like your fantasy image is missing.</p>
+        <p className="text-gray-600 mt-2">Please retake the quiz and selfie.</p>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">Welcome to Your Fantasy!</h1>
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt="Fantasy Generated"
-          className="rounded-xl shadow-md max-w-full h-auto"
-        />
-      )}
+      <h1 className="text-3xl font-bold mb-6">🌌 Your Fantasy Awaits</h1>
+      <img
+        src={imageUrl}
+        alt="Your Fantasy World"
+        className="rounded-2xl shadow-xl max-w-full w-[90%] md:w-[600px]"
+      />
     </div>
   );
 }
