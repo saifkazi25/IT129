@@ -8,10 +8,11 @@ export async function POST(req: Request) {
     const { quizAnswers, selfieUrl } = body;
 
     if (!quizAnswers || !selfieUrl) {
+      console.error("❌ Missing input data:", { quizAnswers, selfieUrl });
       return NextResponse.json({ error: "Missing input data" }, { status: 400 });
     }
 
-    // ✅ Step 1: Build prompt to help FaceFusion work
+    // Build prompt
     const prompt = `A front-facing portrait of a ${quizAnswers.join(", ")}, cinematic fantasy setting, detailed, symmetrical face, centered, high resolution`;
 
     console.log("🧠 Generating fantasy image with prompt:", prompt);
@@ -19,20 +20,22 @@ export async function POST(req: Request) {
 
     console.log("🎨 Fantasy image result:", fantasyImage);
     if (!fantasyImage) {
+      console.error("❌ Fantasy image generation returned null");
       return NextResponse.json({ error: "Fantasy image generation failed" }, { status: 500 });
     }
 
-    // ✅ Step 2: Merge user's face with fantasy image
+    console.log("🤖 Merging with selfie:", selfieUrl);
     const mergedImage = await faceSwapWithFusion(selfieUrl, fantasyImage);
 
-    console.log("🧑‍🚀 Merged final image:", mergedImage);
+    console.log("🧑‍🚀 Merged image result:", mergedImage);
     if (!mergedImage) {
+      console.error("❌ FaceFusion returned null");
       return NextResponse.json({ error: "Face merging failed" }, { status: 500 });
     }
 
     return NextResponse.json({ outputUrl: mergedImage });
   } catch (err) {
-    console.error("❌ Error in /api/generate:", err);
+    console.error("❌ Internal Server Error in /api/generate:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
