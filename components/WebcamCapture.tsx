@@ -18,6 +18,7 @@ export default function WebcamCapture() {
   };
 
   const capture = useCallback(() => {
+    console.log("📸 capture() triggered");
     setCaptured(true);
 
     setTimeout(() => {
@@ -25,10 +26,12 @@ export default function WebcamCapture() {
       console.log("📸 Captured image:", imageSrc);
 
       if (!imageSrc) {
-        setError("Failed to capture selfie. Please try again.");
+        setError("⚠️ Failed to capture selfie. Screenshot is null.");
         setCaptured(false);
         return;
       }
+
+      console.log("⬆️ Uploading to Cloudinary...");
 
       const formData = new FormData();
       formData.append("file", imageSrc);
@@ -38,12 +41,13 @@ export default function WebcamCapture() {
         method: "POST",
         body: formData,
       })
-        .then(res => res.json())
-        .then(async data => {
-          console.log("☁️ Cloudinary response:", data);
+        .then(async res => {
+          console.log("🌐 Cloudinary raw response:", res);
+          const data = await res.json();
+          console.log("☁️ Cloudinary parsed JSON:", data);
 
           if (!data.secure_url) {
-            setError("Cloudinary upload failed. No secure_url returned.");
+            setError("❌ Cloudinary upload failed. secure_url missing.");
             setCaptured(false);
             return;
           }
@@ -52,7 +56,7 @@ export default function WebcamCapture() {
           const quiz = localStorage.getItem("quizAnswers");
 
           if (!quiz) {
-            setError("Missing quiz answers. Please restart.");
+            setError("❌ Missing quiz answers.");
             setCaptured(false);
             return;
           }
@@ -76,13 +80,13 @@ export default function WebcamCapture() {
             localStorage.setItem("fantasyImageUrl", result.outputUrl);
             router.push("/result");
           } else {
-            setError("Image generation failed.");
+            setError("❌ Image generation failed.");
             setCaptured(false);
           }
         })
         .catch(err => {
-          console.error("❌ Upload or generation failed:", err);
-          setError("Something went wrong. Please try again.");
+          console.error("❌ Cloudinary upload or API call failed:", err);
+          setError("⚠️ Something went wrong. See console.");
           setCaptured(false);
         });
     }, 500);
@@ -95,7 +99,7 @@ export default function WebcamCapture() {
         stream.getTracks().forEach(track => track.stop());
         setCameraReady(true);
       } catch {
-        setError("Camera access denied. Please allow permission.");
+        setError("❌ Camera access denied.");
       }
     };
     checkCamera();
@@ -120,11 +124,11 @@ export default function WebcamCapture() {
                 onClick={capture}
                 className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-xl shadow"
               >
-                Capture Selfie
+                📸 Capture Selfie
               </button>
             </>
           )}
-          {captured && <p className="text-green-600 mt-4">Generating your fantasy world...</p>}
+          {captured && <p className="text-green-600 mt-4">Uploading & generating image...</p>}
         </>
       ) : (
         <p className="text-gray-700 text-lg mt-10">Loading camera...</p>
