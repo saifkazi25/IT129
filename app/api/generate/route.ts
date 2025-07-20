@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { quizAnswers, selfieUrl } = body;
 
-    console.log("✅ Incoming data:", { quizAnswers, selfieUrl });
+    console.log("✅ Incoming payload:", { quizAnswers, selfieUrl });
 
     if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
       console.error("❌ Invalid quizAnswers:", quizAnswers);
@@ -14,41 +14,48 @@ export async function POST(req: Request) {
     }
 
     if (!selfieUrl || typeof selfieUrl !== "string") {
-      console.error("❌ Invalid selfieUrl:", selfieUrl);
+      console.error("❌ Invalid selfie URL:", selfieUrl);
       return NextResponse.json({ error: "Invalid selfie URL" }, { status: 400 });
     }
 
-    // Step 1: Generate fantasy image
-    const fantasyImage = await generateFantasyImage(quizAnswers);
-    console.log("🧠 Fantasy image URL:", fantasyImage);
-
-    if (!fantasyImage) {
-      return NextResponse.json({ error: "Fantasy image generation failed" }, { status: 500 });
+    // STEP 1: Generate fantasy image
+    let fantasyImage: string | null = null;
+    try {
+      fantasyImage = await generateFantasyImage(quizAnswers);
+      console.log("🧠 SDXL fantasy image:", fantasyImage);
+    } catch (err) {
+      console.error("❌ Error generating fantasy image:", err);
+      return NextResponse.json({ error: "Fantasy image generation failed", details: err }, { status: 500 });
     }
 
-    // Step 2: Merge face into fantasy scene
-    console.log("📤 Sending to FaceFusion:");
-    console.log("👤 Selfie URL:", selfieUrl);
-    console.log("🌌 Fantasy Image URL:", fantasyImage);
+    if (!fantasyImage) {
+      return NextResponse.json({ error: "Fantasy image returned null" }, { status: 500 });
+    }
 
-    const mergedImage = await mergeFaceWithScene(selfieUrl, fantasyImage);
+    // STEP 2: Merge with FaceFusion
+    let mergedImage: string | null = null;
+    try {
+      console.log("📤 Merging with FaceFusion:", { selfieUrl, fantasyImage });
+      mergedImage = await mergeFaceWithScene(selfieUrl, fantasyImage);
+      console.log("🌀 Merged image:", mergedImage);
+    } catch (err) {
+      console.error("❌ Error merging face into fantasy scene:", err);
+      return NextResponse.json({ error: "FaceFusion failed", details: err }, { status: 500 });
+    }
 
     if (!mergedImage) {
       return NextResponse.json({
         error: "Merged image is null",
-        debug: {
-          selfieUrl,
-          fantasyImage,
-          message: "Check if both are valid image URLs"
-        }
+        selfieUrl,
+        fantasyImage,
+        message: "Check if image URLs are valid"
       }, { status: 500 });
     }
 
-    console.log("✅ Final merged image:", mergedImage);
     return NextResponse.json({ outputUrl: mergedImage });
 
-  } catch (error) {
-    console.error("❌ Error in /api/generate:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (err) {
+    console.error("❌ Unexpected server error:", err);
+    return NextResponse.json({ error: "Unhandled error in /api/generate", details: err }, { status: 500 });
   }
 }
