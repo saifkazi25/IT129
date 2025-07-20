@@ -40,18 +40,26 @@ export default function WebcamCapture() {
       })
         .then(res => res.json())
         .then(async data => {
-          console.log("☁️ Uploaded to Cloudinary:", data.secure_url);
+          console.log("☁️ Cloudinary response:", data);
 
+          if (!data.secure_url) {
+            setError("Cloudinary upload failed. No secure_url returned.");
+            setCaptured(false);
+            return;
+          }
+
+          const selfieUrl = data.secure_url;
           const quiz = localStorage.getItem("quizAnswers");
 
           if (!quiz) {
             setError("Missing quiz answers. Please restart.");
+            setCaptured(false);
             return;
           }
 
           const payload = {
             quizAnswers: JSON.parse(quiz),
-            selfieUrl: data.secure_url,
+            selfieUrl,
           };
 
           console.log("📦 Sending to /api/generate:", payload);
@@ -73,11 +81,11 @@ export default function WebcamCapture() {
           }
         })
         .catch(err => {
-          console.error("Upload or generation failed:", err);
+          console.error("❌ Upload or generation failed:", err);
           setError("Something went wrong. Please try again.");
           setCaptured(false);
         });
-    }, 500); // Delay to ensure camera renders
+    }, 500);
   }, [router]);
 
   useEffect(() => {
