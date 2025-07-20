@@ -4,60 +4,63 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function ResultPage() {
-  const router = useRouter();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const storedAnswers = localStorage.getItem("quizAnswers");
-    const storedSelfieUrl = localStorage.getItem("selfieUrl");
+    const fetchImage = async () => {
+      const storedAnswers = localStorage.getItem("quizAnswers");
+      const selfieUrl = localStorage.getItem("selfieUrl");
 
-    if (!storedAnswers || !storedSelfieUrl) {
-      router.push("/selfie");
-      return;
-    }
+      if (!storedAnswers || !selfieUrl) {
+        console.warn("Missing data, redirecting...");
+        router.push("/selfie");
+        return;
+      }
 
-    const quizAnswers: string[] = JSON.parse(storedAnswers);
-    const selfieUrl: string = storedSelfieUrl;
+      const quizAnswers: string[] = JSON.parse(storedAnswers);
 
-    const fetchResult = async () => {
       try {
-        const res = await fetch("/api/generate", {
+        const response = await fetch("/api/generate", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ quizAnswers, selfieUrl }),
         });
 
-        const data = await res.json();
-        setImageUrl(data.finalImage);
+        const data = await response.json();
+
+        if (data.outputImageUrl) {
+          setImageUrl(data.outputImageUrl);
+        } else {
+          console.error("No image returned:", data);
+        }
       } catch (err) {
-        console.error("Image generation failed:", err);
+        console.error("Error fetching image:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchResult();
+    fetchImage();
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
-      <h1 className="text-2xl font-semibold mb-4">Your Infinite Tsukuyomi</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-br from-gray-900 to-gray-700 text-white">
+      <h1 className="text-3xl font-bold mb-6">Your Fantasy Revealed</h1>
 
-      {loading && <p>Generating your fantasy world... ✨</p>}
-
-      {!loading && imageUrl && (
+      {loading ? (
+        <p className="text-lg">Generating your fantasy... please wait ✨</p>
+      ) : imageUrl ? (
         <img
           src={imageUrl}
-          alt="Your fantasy world"
-          className="rounded-lg shadow-lg max-w-full mt-4"
+          alt="Fantasy Result"
+          className="max-w-full max-h-[80vh] rounded-lg shadow-lg mt-4"
         />
-      )}
-
-      {!loading && !imageUrl && (
-        <p className="text-red-500 mt-4">Something went wrong. Please try again.</p>
+      ) : (
+        <p className="text-red-500 text-lg mt-4">
+          Something went wrong. Please try again.
+        </p>
       )}
     </div>
   );
