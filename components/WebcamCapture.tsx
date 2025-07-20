@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import Webcam, { type Webcam as WebcamType } from "react-webcam";
+import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<WebcamType | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
