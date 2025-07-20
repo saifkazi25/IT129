@@ -1,66 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function ResultPage() {
-  const router = useRouter();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState("Preparing your fantasy image...");
+  const [status, setStatus] = useState("Loading...");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const generateImage = async () => {
-      const storedAnswers = localStorage.getItem("quizAnswers");
+    const fetchData = async () => {
       const storedSelfieUrl = localStorage.getItem("selfieUrl");
+      const storedQuizAnswers = localStorage.getItem("quizAnswers");
 
-      if (!storedAnswers || !storedSelfieUrl) {
-        setStatus("Missing data. Redirecting...");
-        setTimeout(() => router.push("/"), 2000);
+      if (!storedSelfieUrl || !storedQuizAnswers) {
+        setStatus("Missing selfie or quiz answers. Please start again.");
+        setLoading(false);
         return;
       }
 
       try {
-        setStatus("Generating your fantasy...");
-
-        const response = await fetch("/api/generate", {
+        const res = await fetch("/api/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            quizAnswers: JSON.parse(storedAnswers),
             selfieUrl: storedSelfieUrl,
+            quizAnswers: JSON.parse(storedQuizAnswers),
           }),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to generate image");
-        }
+        const data = await res.json();
 
-        const data = await response.json();
-
-        if (data.image) {
-          setImageUrl(data.image);
-          setStatus("Your fantasy is ready!");
+        if (data?.finalImageUrl) {
+          setImageUrl(data.finalImageUrl);
+          setStatus("Here is your fantasy image.");
         } else {
-          throw new Error("No image returned");
+          setStatus("Failed to generate image.");
         }
-      } catch (err) {
-        console.error("Generation Error:", err);
-        setStatus("Something went wrong. Please try again.");
+      } catch (error) {
+        console.error(error);
+        setStatus("An error occurred while generating image.");
+      } finally {
+        setLoading(false);
       }
     };
 
-    generateImage();
-  }, [router]);
+    // ✅ delay to make sure localStorage is populated
+    setTimeout(fetchData, 300); // <--- THIS DELAY HELPS
+
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <h1 className="text-3xl font-bold mb-4 text-center">Infinite Tsukuyomi Result</h1>
       <p className="text-gray-600 mb-4">{status}</p>
+
+      {loading && <p>Generating your fantasy...</p>}
+
       {imageUrl && (
         <img
           src={imageUrl}
-          alt="Generated Fantasy"
-          className="w-full max-w-lg rounded-lg shadow-lg border"
+          alt="Fantasy result"
+          className="rounded-lg shadow-lg max-w-full h-auto"
         />
       )}
     </div>
