@@ -16,44 +16,49 @@ export default function WebcamCapture() {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       setSelfiePreview(imageSrc);
-      uploadImage(imageSrc);
+      uploadToCloudinary(imageSrc);
     }
   }, []);
 
-  const uploadImage = async (base64Image: string) => {
+  const uploadToCloudinary = async (base64Image: string) => {
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", base64Image);
-    formData.append("upload_preset", "infinite_tsukuyomi");
-
     try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/djm1jppes/image/upload`, {
+      const formData = new FormData();
+      formData.append("file", base64Image);
+      formData.append("upload_preset", "infinite_tsukuyomi");
+
+      const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
         method: "POST",
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await response.json();
+
       if (data.secure_url) {
         localStorage.setItem("selfieUrl", data.secure_url);
         setSelfieUploadedUrl(data.secure_url);
       } else {
-        alert("Image upload failed.");
+        alert("Upload failed. Please try again.");
       }
     } catch (error) {
-      console.error("Cloudinary upload failed:", error);
-      alert("Upload error.");
+      console.error("Upload error:", error);
+      alert("Upload error. Try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  const goToResult = () => {
+  const handleGenerateClick = () => {
+    if (!selfieUploadedUrl) {
+      alert("Selfie not uploaded yet!");
+      return;
+    }
     router.push("/result");
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
-      <h1 className="text-xl font-semibold mb-4">Capture Your Selfie</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
+      <h1 className="text-2xl font-bold mb-6">Step 2: Capture Your Selfie</h1>
 
       {!selfiePreview && (
         <Webcam
@@ -68,36 +73,35 @@ export default function WebcamCapture() {
       {selfiePreview && (
         <img
           src={selfiePreview}
-          alt="Captured selfie"
-          className="rounded-lg shadow-md mb-4 max-w-xs"
+          alt="Captured"
+          className="w-64 h-auto rounded-lg shadow-lg mb-4"
         />
       )}
 
-      <div className="mt-4">
+      <div className="flex flex-col items-center space-y-4 mt-4">
         {!selfiePreview && (
           <button
             onClick={capture}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
           >
             Capture Selfie
           </button>
         )}
 
-        {selfiePreview && uploading && (
-          <p className="text-yellow-600 font-semibold">Uploading selfie... please wait</p>
-        )}
+        {uploading && <p className="text-yellow-600">Uploading selfie...</p>}
 
-        {selfieUploadedUrl && !uploading && (
+        {selfiePreview && !uploading && (
           <button
-            onClick={goToResult}
-            className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            onClick={handleGenerateClick}
+            disabled={!selfieUploadedUrl}
+            className={`px-6 py-2 rounded-lg ${
+              selfieUploadedUrl
+                ? "bg-green-600 hover:bg-green-700 text-white"
+                : "bg-gray-400 text-white cursor-not-allowed"
+            }`}
           >
             Generate My Fantasy
           </button>
-        )}
-
-        {!selfieUploadedUrl && selfiePreview && !uploading && (
-          <p className="text-red-600 mt-2">Upload failed or still pending...</p>
         )}
       </div>
     </div>
