@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<React.RefObject<typeof Webcam> | any>(null);
+  const webcamRef = useRef<any>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
@@ -32,13 +32,37 @@ export default function WebcamCapture() {
           body: formData,
         })
           .then(res => res.json())
-          .then(data => {
-            localStorage.setItem("selfieUrl", data.secure_url);
-            router.push("/result");
+          .then(async data => {
+            const selfieUrl = data.secure_url;
+            const quiz = localStorage.getItem("quizAnswers");
+
+            if (!quiz) {
+              setError("Missing quiz answers. Please restart.");
+              return;
+            }
+
+            const response = await fetch("/api/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                quizAnswers: JSON.parse(quiz),
+                selfieUrl: selfieUrl,
+              }),
+            });
+
+            const result = await response.json();
+
+            if (result.outputUrl) {
+              localStorage.setItem("fantasyImageUrl", result.outputUrl);
+              router.push("/result");
+            } else {
+              setError("Image generation failed.");
+              setCaptured(false);
+            }
           })
           .catch(err => {
-            console.error("Upload failed:", err);
-            setError("Failed to upload selfie. Please try again.");
+            console.error("Upload or generation failed:", err);
+            setError("Something went wrong. Please try again.");
             setCaptured(false);
           });
       }
@@ -81,7 +105,7 @@ export default function WebcamCapture() {
               </button>
             </>
           )}
-          {captured && <p className="text-green-600 mt-4">Uploading selfie...</p>}
+          {captured && <p className="text-green-600 mt-4">Generating your fantasy world...</p>}
         </>
       ) : (
         <p>Loading camera...</p>
