@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import generateFantasyImage from "../../../utils/replicate";
-import faceSwapWithFusion from "../../../utils/facefusion";
+import { generateFantasyImage } from "../../../utils/replicate";
+import { faceSwapWithFusion } from "../../../utils/facefusion";
 
 export async function POST(req: Request) {
   try {
