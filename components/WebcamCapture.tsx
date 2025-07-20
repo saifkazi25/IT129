@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<React.RefObject<Webcam> | null>(null);
   const router = useRouter();
 
   const [uploading, setUploading] = useState(false);
@@ -18,10 +18,8 @@ export default function WebcamCapture() {
   };
 
   const captureAndUpload = useCallback(async () => {
-    if (!webcamRef.current) return;
-
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) {
+    const screenshot = webcamRef.current?.current?.getScreenshot();
+    if (!screenshot) {
       alert("Failed to capture selfie. Try again.");
       return;
     }
@@ -31,7 +29,7 @@ export default function WebcamCapture() {
 
     try {
       const formData = new FormData();
-      formData.append("file", imageSrc);
+      formData.append("file", screenshot);
       formData.append("upload_preset", "infinite_tsukuyomi");
 
       const response = await fetch(
@@ -64,7 +62,7 @@ export default function WebcamCapture() {
       <h1 className="text-3xl font-bold mb-4 text-center">Capture Your Selfie</h1>
       <Webcam
         audio={false}
-        ref={webcamRef}
+        ref={webcamRef as any}
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
         className="rounded-lg shadow-md"
