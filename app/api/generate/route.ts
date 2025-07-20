@@ -7,39 +7,32 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { quizAnswers, selfieUrl } = body;
 
-    console.log("✅ Incoming data:", { quizAnswers, selfieUrl });
-
-    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
-      console.error("❌ Invalid quizAnswers:", quizAnswers);
-      return NextResponse.json({ error: "Invalid quiz answers" }, { status: 400 });
+    if (!quizAnswers || !selfieUrl) {
+      return NextResponse.json({ error: "Missing input data" }, { status: 400 });
     }
 
-    if (!selfieUrl || typeof selfieUrl !== "string") {
-      console.error("❌ Invalid selfieUrl:", selfieUrl);
-      return NextResponse.json({ error: "Invalid selfie URL" }, { status: 400 });
-    }
+    // ✅ Step 1: Build prompt to help FaceFusion work
+    const prompt = `A front-facing portrait of a ${quizAnswers.join(", ")}, cinematic fantasy setting, detailed, symmetrical face, centered, high resolution`;
 
-    // Step 1: Generate fantasy image
-    console.log("🧠 Generating fantasy image...");
-    const fantasyImage = await generateFantasyImage(quizAnswers);
+    console.log("🧠 Generating fantasy image with prompt:", prompt);
+    const fantasyImage = await generateFantasyImage({ prompt });
+
     console.log("🎨 Fantasy image result:", fantasyImage);
-
     if (!fantasyImage) {
       return NextResponse.json({ error: "Fantasy image generation failed" }, { status: 500 });
     }
 
-    // Step 2: Merge with FaceFusion
-    console.log("🌀 Calling FaceFusion with:", { selfieUrl, fantasyImage });
+    // ✅ Step 2: Merge user's face with fantasy image
     const mergedImage = await faceSwapWithFusion(selfieUrl, fantasyImage);
-    console.log("🧬 FaceFusion output:", mergedImage);
 
+    console.log("🧑‍🚀 Merged final image:", mergedImage);
     if (!mergedImage) {
       return NextResponse.json({ error: "Face merging failed" }, { status: 500 });
     }
 
     return NextResponse.json({ outputUrl: mergedImage });
-  } catch (error) {
-    console.error("❌ Error in /api/generate route:", error);
+  } catch (err) {
+    console.error("❌ Error in /api/generate:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
