@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import Webcam, { Webcam as WebcamComponent } from "react-webcam";
+import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<WebcamComponent | null>(null);
+  const webcamRef = useRef<React.RefObject<typeof Webcam> | any>(null);
   const router = useRouter();
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
@@ -23,7 +23,6 @@ export default function WebcamCapture() {
       if (imageSrc) {
         setCaptured(true);
 
-        // Upload to Cloudinary (or handle locally)
         const formData = new FormData();
         formData.append("file", imageSrc);
         formData.append("upload_preset", "infinite_tsukuyomi");
@@ -47,17 +46,16 @@ export default function WebcamCapture() {
   }, [router]);
 
   useEffect(() => {
-    const handleCameraPermission = async () => {
+    const checkCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         stream.getTracks().forEach(track => track.stop());
         setCameraReady(true);
-      } catch (err) {
-        setError("Camera access denied. Please allow camera access.");
+      } catch {
+        setError("Camera access denied. Please allow permission.");
       }
     };
-
-    handleCameraPermission();
+    checkCamera();
   }, []);
 
   return (
