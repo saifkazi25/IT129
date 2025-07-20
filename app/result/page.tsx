@@ -15,8 +15,6 @@ export default function ResultPage() {
       const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
       const selfieUrl = localStorage.getItem("selfieUrl");
 
-      console.log("📦 Sending to /api/generate:", { quizAnswers, selfieUrl });
-
       if (!quizAnswers.length || !selfieUrl) {
         setError("Missing quiz answers or selfie. Please go back and try again.");
         setLoading(false);
