@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useRef, useState, useCallback } from "react";
-import Webcam from "react-webcam";
+import ReactWebcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<ReactWebcam | null>(null);
   const router = useRouter();
 
   const [uploading, setUploading] = useState(false);
@@ -61,7 +61,7 @@ export default function WebcamCapture() {
       <h1 className="text-2xl font-bold mb-6">Step 2: Capture Your Selfie</h1>
 
       {!selfiePreview && (
-        <Webcam
+        <ReactWebcam
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
