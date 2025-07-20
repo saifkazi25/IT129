@@ -20,9 +20,10 @@ export async function POST(req: Request) {
     console.log("🎨 Fantasy image result:", templateImageUrl);
 
     console.log("🤖 Merging with selfie:", selfieUrl);
+
     const finalImageUrl = await mergeFaceWithFantasyImage({
-      templateImageUrl,
-      userImageUrl: selfieUrl,
+      templateImage: templateImageUrl, // ✅ renamed key
+      userImage: selfieUrl,            // ✅ renamed key
     });
 
     console.log("🧬 Final merged image URL:", finalImageUrl);
