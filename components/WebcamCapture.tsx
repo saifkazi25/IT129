@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import Webcam from "react-webcam";
+import React, { useRef, useState, useEffect } from "react";
+import Webcam, { type Webcam as WebcamType } from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam | null>(null);
+  const webcamRef = useRef<WebcamType | null>(null);
   const router = useRouter();
-
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
-  const [isSelfieUploaded, setIsSelfieUploaded] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<string[] | null>(null);
 
   const videoConstraints = {
     width: 640,
@@ -19,20 +18,27 @@ export default function WebcamCapture() {
     facingMode: "user",
   };
 
+  useEffect(() => {
+    const storedAnswers = localStorage.getItem("quizAnswers");
+    if (storedAnswers) {
+      setQuizAnswers(JSON.parse(storedAnswers));
+    } else {
+      router.push("/");
+    }
+  }, [router]);
+
   const capture = async () => {
     if (!webcamRef.current) return;
-
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
 
     setUploading(true);
-    setSelfiePreview(imageSrc);
-    setUploadStatus("Uploading to Cloudinary...");
-    setIsSelfieUploaded(false); // Block result button
+    setUploadStatus("Uploading selfie...");
 
     try {
       const formData = new FormData();
-      formData.append("file", imageSrc);
+      const blob = await (await fetch(imageSrc)).blob();
+      formData.append("file", blob);
       formData.append("upload_preset", "infinite_tsukuyomi");
 
       const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
@@ -44,64 +50,57 @@ export default function WebcamCapture() {
 
       if (data.secure_url) {
         localStorage.setItem("selfieUrl", data.secure_url);
-        setUploadStatus("Upload complete ✅");
-        setIsSelfieUploaded(true);
+        setSelfiePreview(data.secure_url);
+        setUploadStatus("Selfie uploaded!");
       } else {
-        setUploadStatus("Upload failed ❌");
+        setUploadStatus("Upload failed. Try again.");
       }
     } catch (error) {
-      console.error("Cloudinary upload error:", error);
-      setUploadStatus("Upload error ❌");
+      console.error("Upload error:", error);
+      setUploadStatus("Upload failed. Try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  const goToResult = () => {
-    if (isSelfieUploaded) {
-      router.push("/result");
-    }
+  const handleContinue = () => {
+    router.push("/result");
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen space-y-4 p-4">
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-        videoConstraints={videoConstraints}
-        className="rounded shadow-md w-[360px]"
-      />
+    <div className="flex flex-col items-center justify-center p-4">
+      <h1 className="text-2xl font-bold mb-4">Step 2: Capture Your Selfie</h1>
 
-      <button
-        onClick={capture}
-        disabled={uploading}
-        className={`py-2 px-6 rounded font-semibold text-white ${
-          uploading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-        }`}
-      >
-        {uploading ? "Uploading..." : "Capture Selfie"}
-      </button>
-
-      {uploadStatus && <p className="text-sm text-gray-600">{uploadStatus}</p>}
-
-      {selfiePreview && (
-        <img
-          src={selfiePreview}
-          alt="Selfie Preview"
-          className="w-48 h-48 object-cover rounded border shadow"
-        />
+      {!selfiePreview ? (
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            videoConstraints={videoConstraints}
+            className="rounded-lg shadow-md mb-4"
+          />
+          <button
+            onClick={capture}
+            disabled={uploading}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          >
+            {uploading ? "Uploading..." : "Capture Selfie"}
+          </button>
+        </>
+      ) : (
+        <>
+          <img src={selfiePreview} alt="Selfie preview" className="w-64 h-auto rounded shadow mb-4" />
+          <p className="text-green-600 mb-2">{uploadStatus}</p>
+          <button
+            onClick={handleContinue}
+            disabled={!selfiePreview || uploading}
+            className="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
+          >
+            Generate My Fantasy
+          </button>
+        </>
       )}
-
-      <button
-        onClick={goToResult}
-        disabled={!isSelfieUploaded}
-        className={`py-2 px-6 rounded font-semibold text-white ${
-          isSelfieUploaded ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
-        }`}
-      >
-        Generate My Fantasy
-      </button>
     </div>
   );
 }
