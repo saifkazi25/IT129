@@ -11,6 +11,7 @@ export default function WebcamCapture() {
   const [uploading, setUploading] = useState(false);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [isSelfieUploaded, setIsSelfieUploaded] = useState(false); // ✅ Track upload
 
   const videoConstraints = {
     width: 640,
@@ -27,6 +28,7 @@ export default function WebcamCapture() {
     setUploading(true);
     setUploadStatus("Uploading selfie...");
     setSelfiePreview(imageSrc);
+    setIsSelfieUploaded(false);
 
     try {
       const formData = new FormData();
@@ -43,6 +45,7 @@ export default function WebcamCapture() {
       if (data.secure_url) {
         localStorage.setItem("selfieUrl", data.secure_url);
         setUploadStatus("Upload successful!");
+        setIsSelfieUploaded(true); // ✅ Enable the "Generate" button
       } else {
         console.error("Failed to upload to Cloudinary:", data);
         setUploadStatus("Upload failed.");
@@ -90,7 +93,7 @@ export default function WebcamCapture() {
 
       <button
         onClick={goToResult}
-        disabled={!localStorage.getItem("selfieUrl")}
+        disabled={!isSelfieUploaded}
         className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded disabled:bg-gray-400"
       >
         Generate My Fantasy
