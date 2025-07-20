@@ -6,55 +6,43 @@ export async function POST(req: Request) {
   try {
     const { quizAnswers, selfieUrl } = await req.json();
 
-    if (!quizAnswers || !selfieUrl) {
-      return NextResponse.json(
-        { error: "Missing input data" },
-        { status: 400 }
-      );
+    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
+      return NextResponse.json({ error: "Invalid or missing quiz answers" }, { status: 400 });
     }
 
-    console.log("✅ Incoming quizAnswers:", quizAnswers);
-    console.log("🧠 Incoming selfieUrl:", selfieUrl);
+    if (!selfieUrl || typeof selfieUrl !== "string") {
+      return NextResponse.json({ error: "Missing selfie URL" }, { status: 400 });
+    }
 
-    const fantasyPrompt = `
-      ultra-realistic digital art, epic cinematic lighting, a mystical scene showing ${
-        quizAnswers[0]
-      } in ${quizAnswers[1]}, a powerful ${quizAnswers[2]} wearing a ${quizAnswers[3]},
-      in front of a ${quizAnswers[4]}, aura of ${quizAnswers[5]}, surrounded by ${quizAnswers[6]},
-      portrait style, symmetrical, centered, clear view of face, fantasy setting
-    `.replace(/\s+/g, " ");
+    // 1. Generate SDXL fantasy image
+    const fantasyPrompt = `A fantasy scene based on these elements: ${quizAnswers.join(", ")}. 
+    Include a clearly visible, centered, symmetrical human face with soft lighting, fantasy costume, cinematic details, full head and upper body.`;
 
-    const negativePrompt =
-      "blurry, low-resolution, distorted face, cropped face, face not visible, back of head, far away, chaotic background";
+    const negativePrompt = "blurry, distorted, cropped, dark, back of head, face hidden, bad anatomy, low resolution";
 
     const fantasyImageUrl = await generateFantasyImage({
       prompt: fantasyPrompt,
       negative_prompt: negativePrompt,
     });
 
-    console.log("🖼️ SDXL fantasy image:", fantasyImageUrl);
-    console.log("🤖 Merging with selfie:", selfieUrl);
-
-    let finalImageUrl: string;
-
-    try {
-      finalImageUrl = await mergeFaceWithFantasyImage({
-        templateImage: fantasyImageUrl,
-        userImage: selfieUrl,
-      });
-
-      console.log("✅ Merged fantasy + selfie image:", finalImageUrl);
-    } catch (mergeErr) {
-      console.warn("⚠️ FaceFusion failed, fallback to fantasy image:", mergeErr);
-      finalImageUrl = fantasyImageUrl;
+    if (!fantasyImageUrl) {
+      return NextResponse.json({ error: "Fantasy image generation failed" }, { status: 500 });
     }
 
-    return NextResponse.json({ imageUrl: finalImageUrl });
-  } catch (err) {
-    console.error("🔥 /api/generate failed:", err);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    // 2. Merge the user's selfie with the fantasy image
+    const mergedImageUrl = await mergeFaceWithFantasyImage({
+      templateImage: fantasyImageUrl,
+      userImage: selfieUrl,
+    });
+
+    if (!mergedImageUrl) {
+      return NextResponse.json({ error: "FaceFusion failed" }, { status: 500 });
+    }
+
+    // 3. Return the final merged image
+    return NextResponse.json({ imageUrl: mergedImageUrl });
+  } catch (err: any) {
+    console.error("🔥 API error:", err);
+    return NextResponse.json({ error: "Unexpected error in image generation" }, { status: 500 });
   }
 }
