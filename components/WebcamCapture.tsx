@@ -5,13 +5,13 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const router = useRouter();
 
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<string>("");
-  const [isSelfieUploaded, setIsSelfieUploaded] = useState(false); // ✅ Track upload
+  const [isSelfieUploaded, setIsSelfieUploaded] = useState(false);
 
   const videoConstraints = {
     width: 640,
@@ -26,40 +26,41 @@ export default function WebcamCapture() {
     if (!imageSrc) return;
 
     setUploading(true);
-    setUploadStatus("Uploading selfie...");
     setSelfiePreview(imageSrc);
-    setIsSelfieUploaded(false);
+    setUploadStatus("Uploading to Cloudinary...");
+    setIsSelfieUploaded(false); // Block result button
 
     try {
       const formData = new FormData();
       formData.append("file", imageSrc);
       formData.append("upload_preset", "infinite_tsukuyomi");
 
-      const res = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
+      const response = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
         method: "POST",
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
       if (data.secure_url) {
         localStorage.setItem("selfieUrl", data.secure_url);
-        setUploadStatus("Upload successful!");
-        setIsSelfieUploaded(true); // ✅ Enable the "Generate" button
+        setUploadStatus("Upload complete ✅");
+        setIsSelfieUploaded(true);
       } else {
-        console.error("Failed to upload to Cloudinary:", data);
-        setUploadStatus("Upload failed.");
+        setUploadStatus("Upload failed ❌");
       }
-    } catch (err) {
-      console.error("Error uploading selfie:", err);
-      setUploadStatus("Upload error.");
+    } catch (error) {
+      console.error("Cloudinary upload error:", error);
+      setUploadStatus("Upload error ❌");
     } finally {
       setUploading(false);
     }
   };
 
   const goToResult = () => {
-    router.push("/result");
+    if (isSelfieUploaded) {
+      router.push("/result");
+    }
   };
 
   return (
@@ -68,15 +69,16 @@ export default function WebcamCapture() {
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        width={360}
         videoConstraints={videoConstraints}
-        className="rounded-lg shadow-md"
+        className="rounded shadow-md w-[360px]"
       />
 
       <button
         onClick={capture}
         disabled={uploading}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded disabled:bg-gray-400"
+        className={`py-2 px-6 rounded font-semibold text-white ${
+          uploading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+        }`}
       >
         {uploading ? "Uploading..." : "Capture Selfie"}
       </button>
@@ -86,15 +88,17 @@ export default function WebcamCapture() {
       {selfiePreview && (
         <img
           src={selfiePreview}
-          alt="Selfie preview"
-          className="w-48 h-48 object-cover rounded-lg shadow"
+          alt="Selfie Preview"
+          className="w-48 h-48 object-cover rounded border shadow"
         />
       )}
 
       <button
         onClick={goToResult}
         disabled={!isSelfieUploaded}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded disabled:bg-gray-400"
+        className={`py-2 px-6 rounded font-semibold text-white ${
+          isSelfieUploaded ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
+        }`}
       >
         Generate My Fantasy
       </button>
