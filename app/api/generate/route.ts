@@ -7,7 +7,6 @@ export async function POST(req: Request) {
 
     console.log("✅ Incoming data:", { quizAnswers, selfieUrl });
 
-    // Validate input
     if (
       !quizAnswers ||
       !Array.isArray(quizAnswers) ||
@@ -19,8 +18,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid input data" }, { status: 400 });
     }
 
+    // 🔧 Join quiz answers into a single fantasy prompt
+    const fantasyPrompt = quizAnswers.join(" ");
+
     // Step 1: Generate Fantasy Image using SDXL
-    const fantasyImageUrl = await generateFantasyImage(quizAnswers);
+    const fantasyImageUrl = await generateFantasyImage(fantasyPrompt);
     if (!fantasyImageUrl) {
       console.error("❌ Fantasy image generation failed");
       return NextResponse.json({ error: "Fantasy image generation failed" }, { status: 500 });
