@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<React.ElementRef<typeof Webcam>>(null);
   const router = useRouter();
 
   const [captured, setCaptured] = useState(false);
@@ -25,7 +25,7 @@ export default function WebcamCapture() {
       setSelfie(imageSrc);
       setCaptured(true);
     }
-  }, [webcamRef]);
+  }, []);
 
   const uploadToCloudinary = async () => {
     if (!selfie) {
@@ -39,25 +39,25 @@ export default function WebcamCapture() {
     try {
       const formData = new FormData();
       formData.append("file", selfie);
-      formData.append("upload_preset", "infinite_tsukuyomi"); // Your unsigned preset
-      formData.append("cloud_name", "djm1jppes"); // Your cloud name
+      formData.append("upload_preset", "infinite_tsukuyomi");
+      formData.append("cloud_name", "djm1jppes");
 
       const res = await fetch("https://api.cloudinary.com/v1_1/djm1jppes/image/upload", {
         method: "POST",
         body: formData,
       });
 
-      const cloudinaryData = await res.json();
+      const data = await res.json();
 
-      if (cloudinaryData.secure_url) {
-        localStorage.setItem("selfieUrl", cloudinaryData.secure_url);
+      if (data.secure_url) {
+        localStorage.setItem("selfieUrl", data.secure_url);
         router.push("/result");
       } else {
-        setError("Failed to upload selfie. Please try again.");
+        setError("Failed to upload selfie.");
       }
     } catch (err) {
       console.error(err);
-      setError("An error occurred during upload.");
+      setError("Upload error occurred.");
     } finally {
       setUploading(false);
     }
@@ -65,16 +65,16 @@ export default function WebcamCapture() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-3xl font-bold mb-4 text-center">Capture Your Selfie</h1>
+      <h1 className="text-3xl font-bold mb-4">Capture Your Selfie</h1>
 
       {!captured ? (
         <>
           <Webcam
-            audio={false}
             ref={webcamRef}
+            audio={false}
             screenshotFormat="image/jpeg"
             videoConstraints={videoConstraints}
-            className="rounded-lg shadow-lg mb-4"
+            className="rounded-lg shadow mb-4"
           />
           <button
             onClick={capture}
@@ -85,15 +85,11 @@ export default function WebcamCapture() {
         </>
       ) : (
         <>
-          <img
-            src={selfie!}
-            alt="Captured"
-            className="rounded-lg shadow-lg mb-4 max-w-full"
-          />
+          <img src={selfie!} alt="Captured" className="rounded-lg shadow-lg mb-4" />
           <button
             onClick={uploadToCloudinary}
             disabled={uploading}
-            className={`px-6 py-2 rounded-lg shadow text-white ${
+            className={`px-6 py-2 rounded-lg text-white ${
               uploading ? "bg-gray-400" : "bg-green-600"
             }`}
           >
