@@ -49,13 +49,17 @@ export default function WebcamCapture() {
             return;
           }
 
+          const payload = {
+            quizAnswers: JSON.parse(quiz),
+            selfieUrl: data.secure_url,
+          };
+
+          console.log("📦 Sending to /api/generate:", payload);
+
           const response = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              quizAnswers: JSON.parse(quiz),
-              selfieUrl: data.secure_url,
-            }),
+            body: JSON.stringify(payload),
           });
 
           const result = await response.json();
