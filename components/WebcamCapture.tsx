@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useRef, useState, useCallback } from 'react';
-import Webcam from 'react-webcam';
+import ReactWebcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<ReactWebcam>(null);
   const router = useRouter();
 
   const [captured, setCaptured] = useState(false);
@@ -20,16 +20,14 @@ export default function WebcamCapture() {
     facingMode: 'user',
   };
 
-  // Capture selfie
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
       setCaptured(true);
       uploadToCloudinary(imageSrc);
     }
-  }, [webcamRef]);
+  }, []);
 
-  // Upload selfie to Cloudinary
   const uploadToCloudinary = async (base64Image: string) => {
     try {
       setUploading(true);
@@ -55,7 +53,6 @@ export default function WebcamCapture() {
     }
   };
 
-  // Generate fantasy image after selfie is uploaded
   const handleGenerate = async () => {
     if (!imageUrl) {
       setError('Selfie upload not complete');
@@ -93,7 +90,7 @@ export default function WebcamCapture() {
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       {!captured ? (
         <>
-          <Webcam
+          <ReactWebcam
             audio={false}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
