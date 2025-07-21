@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadSelfieToCloudinary } from '../../../utils/cloudinary';
+import { uploadImageToCloudinary } from '../../../utils/cloudinary';
 import { generateFantasyImage } from '../../../utils/replicate';
 import { runFaceFusion } from '../../../utils/facefusion';
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Upload selfie to Cloudinary
-    const selfieUrl = await uploadSelfieToCloudinary(selfieDataUrl);
+    const selfieUrl = await uploadImageToCloudinary(selfieDataUrl);
     console.log('✅ Cloudinary upload success:', selfieUrl);
 
     // Step 2: Build prompt from quiz answers
