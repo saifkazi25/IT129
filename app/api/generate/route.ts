@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateFantasyImage } from "../../../utils/replicate";
-import { mergeFaceIntoFantasyImage } from "../../../utils/facefusion";
+import { mergeFaceWithFantasyImage } from "../../../utils/facefusion";
 
 export async function POST(req: Request) {
   try {
@@ -43,7 +43,10 @@ export async function POST(req: Request) {
     // STEP 2: Merge user's face into fantasy image using FaceFusion
     let finalImageUrl: string;
     try {
-      finalImageUrl = await mergeFaceIntoFantasyImage(selfieUrl, fantasyImageUrl);
+      finalImageUrl = await mergeFaceWithFantasyImage({
+        userImage: selfieUrl,
+        templateImage: fantasyImageUrl,
+      });
     } catch (err: any) {
       console.error("🔥 FaceFusion failed:", err);
       return NextResponse.json(
