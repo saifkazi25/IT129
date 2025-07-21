@@ -5,7 +5,7 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<Webcam>(null);
+  const webcamRef = useRef<any>(null); // ✅ Fix: use 'any' to avoid build error
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
 
@@ -31,8 +31,8 @@ export default function WebcamCapture() {
       // Upload to Cloudinary
       const formData = new FormData();
       formData.append("file", imageSrc);
-      formData.append("upload_preset", "infinite_tsukuyomi"); // Your upload preset
-      formData.append("cloud_name", "djm1jppes"); // Your cloud name
+      formData.append("upload_preset", "infinite_tsukuyomi"); // your upload preset
+      formData.append("cloud_name", "djm1jppes"); // your Cloudinary cloud name
 
       const cloudinaryRes = await fetch(
         "https://api.cloudinary.com/v1_1/djm1jppes/image/upload",
@@ -58,18 +58,15 @@ export default function WebcamCapture() {
 
       console.log("✅ Retrieved quizAnswers from localStorage:", quizAnswers);
 
-      // Final validation
       if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
         throw new Error("Invalid or missing quiz answers.");
       }
 
-      // Debug log: Final payload
       console.log("🧪 Final payload to /api/generate:", {
         quizAnswers,
         selfieDataUrl: cloudinaryUrl,
       });
 
-      // Send to API
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
