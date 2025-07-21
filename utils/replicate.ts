@@ -1,54 +1,47 @@
 import Replicate from "replicate";
 
-// Initialize Replicate client
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN as string,
+  auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-interface SDXLInput {
+export interface SDXLInput {
   prompt: string;
   negative_prompt?: string;
+  width?: number;
+  height?: number;
+  scheduler?: string;
+  num_outputs?: number;
+  guidance_scale?: number;
+  num_inference_steps?: number;
 }
 
-// Main image generation function
-export async function generateFantasyImage({
-  prompt,
-  negative_prompt = "",
-}: SDXLInput): Promise<string> {
-  const version =
-    "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc";
-
-  // Boost FaceFusion compatibility
-  const fullPrompt = `${prompt}, highly detailed, symmetrical face, centered face, looking directly at camera, cinematic lighting, fantasy environment`;
-  const fullNegativePrompt =
-    negative_prompt ||
-    "blurry, low-res, deformed, poorly drawn face, asymmetrical, occluded face, cropped, out of frame";
-
-  const input = {
+export async function generateFantasyImage(input: SDXLInput): Promise<string> {
+  const defaultInput: SDXLInput = {
     width: 1024,
     height: 1024,
-    prompt: fullPrompt,
-    negative_prompt: fullNegativePrompt,
-    refine: "expert_ensemble_refiner",
+    prompt: input.prompt,
+    negative_prompt: "blurry, distorted, low quality, no face, bad anatomy, deformed, back of head",
     scheduler: "K_EULER",
-    lora_scale: 0.6,
     num_outputs: 1,
     guidance_scale: 7.5,
-    apply_watermark: false,
-    high_noise_frac: 0.8,
-    prompt_strength: 0.8,
     num_inference_steps: 30,
   };
 
-  console.log("🚀 Sending SDXL input:", input);
+  try {
+    const output = await replicate.run(
+      "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+      {
+        input: defaultInput,
+      }
+    );
 
-  const output = await replicate.run(version, { input });
+    if (Array.isArray(output) && output.length > 0) {
+      return output[0] as string;
+    }
 
-  console.log("🧠 SDXL output:", output);
-
-  if (!output || !Array.isArray(output) || output.length === 0) {
-    throw new Error("No image returned from SDXL.");
+    throw new Error("No image returned from SDXL");
+  } catch (error) {
+    console.error("❌ Error in generateFantasyImage:", error);
+    throw error;
   }
-
-  return output[0] as string;
 }
