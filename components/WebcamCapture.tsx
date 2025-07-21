@@ -5,10 +5,9 @@ import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
 
 export default function WebcamCapture() {
-  const webcamRef = useRef<any>(null);
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const videoConstraints = {
     width: 640,
@@ -16,27 +15,26 @@ export default function WebcamCapture() {
     facingMode: "user",
   };
 
-  const handleCapture = async () => {
-    setError("");
-    setLoading(true);
-    console.log("✅ Capture button clicked");
-
+  const capture = async () => {
     const imageSrc = webcamRef.current?.getScreenshot();
-    console.log("📸 Captured image:", imageSrc);
-
     if (!imageSrc) {
-      setError("No image captured. Please try again.");
-      setLoading(false);
+      alert("Failed to capture selfie. Please try again.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", imageSrc);
-    formData.append("upload_preset", "infinite_tsukuyomi");
+    console.log("📸 Captured image:", imageSrc);
 
     try {
+      setUploading(true);
       console.log("⬆️ Uploading to Cloudinary...");
-      const cloudRes = await fetch(
+
+      // Upload to Cloudinary
+      const formData = new FormData();
+      formData.append("file", imageSrc);
+      formData.append("upload_preset", "infinite_tsukuyomi"); // Your upload preset
+      formData.append("cloud_name", "djm1jppes"); // Your cloud name
+
+      const cloudinaryRes = await fetch(
         "https://api.cloudinary.com/v1_1/djm1jppes/image/upload",
         {
           method: "POST",
@@ -44,83 +42,81 @@ export default function WebcamCapture() {
         }
       );
 
-      const cloudData = await cloudRes.json();
-      console.log("☁️ Cloudinary response:", cloudData);
+      const uploadResult = await cloudinaryRes.json();
+      const cloudinaryUrl = uploadResult.secure_url;
 
-      if (!cloudData.secure_url) {
-        setError("Cloudinary upload failed. Try again.");
-        setLoading(false);
-        return;
+      console.log("☁️ Cloudinary response:", uploadResult);
+      console.log("🌐 Cloudinary URL:", cloudinaryUrl);
+
+      if (!cloudinaryUrl) {
+        throw new Error("Cloudinary upload failed or returned no URL.");
       }
 
-      const selfieUrl = cloudData.secure_url;
-      const quiz = localStorage.getItem("quizAnswers");
+      // Get quiz answers from localStorage
+      const storedAnswers = localStorage.getItem("quizAnswers");
+      const quizAnswers = storedAnswers ? JSON.parse(storedAnswers) : null;
 
-      if (!quiz) {
-        setError("Missing quiz answers. Please restart the quiz.");
-        setLoading(false);
-        return;
+      console.log("✅ Retrieved quizAnswers from localStorage:", quizAnswers);
+
+      // Final validation
+      if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
+        throw new Error("Invalid or missing quiz answers.");
       }
 
-      const payload = {
-        quizAnswers: JSON.parse(quiz),
-        selfieUrl,
-      };
-
-      console.log("📦 Sending to /api/generate:", payload);
-
-      const genRes = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      // Debug log: Final payload
+      console.log("🧪 Final payload to /api/generate:", {
+        quizAnswers,
+        selfieDataUrl: cloudinaryUrl,
       });
 
-      if (!genRes.ok) {
-        const errorDetails = await genRes.json();
-        console.error("❌ /api/generate failed:", errorDetails);
-        setError(
-          errorDetails?.error ||
-            "Image generation failed. Please try again later."
-        );
-        setLoading(false);
+      // Send to API
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quizAnswers,
+          selfieDataUrl: cloudinaryUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("❌ /api/generate failed:", error);
+        alert(`Image generation failed: ${error.error}`);
         return;
       }
 
-      const genData = await genRes.json();
-      console.log("🖼 Generated image result:", genData);
+      const data = await response.json();
+      const finalImageUrl = data.mergedImageUrl;
 
-      if (genData.outputUrl) {
-        localStorage.setItem("fantasyImageUrl", genData.outputUrl);
-        router.push("/result");
-      } else {
-        setError("Image generation failed. No URL returned.");
-      }
+      console.log("🌟 Final merged image URL:", finalImageUrl);
+
+      localStorage.setItem("finalImageUrl", finalImageUrl);
+      router.push("/result");
     } catch (err) {
-      console.error("❌ Error in upload/generate flow:", err);
-      setError("Something went wrong. Please try again.");
+      console.error("🔥 Error during selfie + quiz processing:", err);
+      alert("Something went wrong! Check the console for details.");
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center p-6">
+    <div className="flex flex-col items-center space-y-4">
       <Webcam
+        audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
         videoConstraints={videoConstraints}
         className="rounded-xl shadow-md"
       />
-
       <button
-        onClick={handleCapture}
-        disabled={loading}
-        className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl shadow disabled:opacity-50"
+        onClick={capture}
+        disabled={uploading}
+        className="px-6 py-3 rounded-2xl bg-black text-white font-semibold shadow-md hover:bg-gray-800 disabled:opacity-50"
       >
-        {loading ? "🧠 Generating..." : "📸 Capture Selfie"}
+        {uploading ? "Processing..." : "Capture & Continue"}
       </button>
-
-      {error && <p className="text-red-600 mt-4 text-center">{error}</p>}
     </div>
   );
 }
