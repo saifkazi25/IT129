@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
 
     console.log('🧠 Built SDXL prompt:', prompt);
 
-    // 2. Generate fantasy image using SDXL
-    const fantasyImageUrl = await generateFantasyImage(prompt);
+    // 2. Generate fantasy image using SDXL (FIXED!)
+    const fantasyImageUrl = await generateFantasyImage({ prompt });
     console.log('🖼️ Fantasy image generated:', fantasyImageUrl);
 
     // 3. Merge face using FaceFusion
