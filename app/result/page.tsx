@@ -9,16 +9,27 @@ export default function ResultPage() {
 
   useEffect(() => {
     const generateImage = async () => {
-      const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
+      const quizAnswersRaw = localStorage.getItem('quizAnswers');
       const selfieDataUrl = localStorage.getItem('selfieDataUrl');
 
-      if (!quizAnswers.length || !selfieDataUrl) {
+      if (!quizAnswersRaw || !selfieDataUrl) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+
+      const quizAnswers = JSON.parse(quizAnswersRaw);
+
+      if (!quizAnswers.length) {
         setError(true);
         setLoading(false);
         return;
       }
 
       try {
+        console.log('✅ Retrieved quizAnswers from localStorage:', quizAnswers);
+        console.log('🧪 Final payload to /api/generate:', { quizAnswers, selfieDataUrl });
+
         const response = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -26,7 +37,7 @@ export default function ResultPage() {
         });
 
         const data = await response.json();
-        console.log('🌟 Final result payload:', data);
+        console.log('🌟 Final merged image URL:', data.mergedImageUrl);
 
         if (data.mergedImageUrl) {
           setMergedImageUrl(data.mergedImageUrl);
@@ -45,10 +56,12 @@ export default function ResultPage() {
   }, []);
 
   return (
-    <div className="p-6 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
+    <div className="min-h-screen p-6 flex flex-col items-center justify-center">
+      <h1 className="text-3xl font-bold mb-4 text-center">🌌 Your Infinite Tsukuyomi</h1>
 
-      {loading && <p className="text-lg">🧠 Generating your fantasy scene...</p>}
+      {loading && (
+        <p className="text-lg text-gray-600 animate-pulse">🧠 Generating your fantasy scene...</p>
+      )}
 
       {!loading && error && (
         <p className="text-red-600 text-center mt-4">
@@ -60,7 +73,7 @@ export default function ResultPage() {
         <div className="mt-6">
           <img
             src={mergedImageUrl}
-            alt="Final Fantasy Image with Your Face"
+            alt="Your fantasy with your face"
             className="rounded-xl shadow-lg max-w-full"
           />
         </div>
