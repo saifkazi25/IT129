@@ -1,74 +1,70 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
+  const [finalImage, setFinalImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMergedImage = async () => {
+    const generateImage = async () => {
+      const storedAnswers = localStorage.getItem('quizAnswers');
+      const storedSelfie = localStorage.getItem('selfieDataUrl');
+
+      if (!storedAnswers || !storedSelfie) {
+        console.warn('Missing data in localStorage');
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const storedQuizAnswers = localStorage.getItem('quizAnswers');
-        const storedSelfieUrl = localStorage.getItem('selfieDataUrl');
+        const quizAnswers: string[] = JSON.parse(storedAnswers);
+        const selfieDataUrl: string = storedSelfie;
 
-        if (!storedQuizAnswers || !storedSelfieUrl) {
-          setError('Missing quiz answers or selfie');
-          setIsLoading(false);
-          return;
-        }
+        console.log('✅ Retrieved quizAnswers from localStorage:', quizAnswers);
+        console.log('📸 Retrieved selfieDataUrl from localStorage:', selfieDataUrl);
 
-        const quizAnswers = JSON.parse(storedQuizAnswers);
+        const payload = { quizAnswers, selfieDataUrl };
+        console.log('🧪 Final payload to /api/generate:', payload);
 
-        const response = await fetch('/api/generate', {
+        const res = await fetch('/api/generate', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            quizAnswers,
-            selfieDataUrl: storedSelfieUrl,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to generate image');
-        }
+        const data = await res.json();
 
-        const data = await response.json();
-        if (data.finalImage) {
-          setMergedImageUrl(data.finalImage);
+        if (data.finalImageUrl) {
+          console.log('🌟 Final merged image URL:', data.finalImageUrl);
+          setFinalImage(data.finalImageUrl);
         } else {
-          setError('Image not generated');
+          console.error('No image returned from backend:', data);
         }
-      } catch (err: any) {
-        console.error('⚠️ Error generating image:', err);
-        setError('An error occurred. Please try again.');
+      } catch (error) {
+        console.error('❌ Error generating image:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMergedImage();
+    generateImage();
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-black text-white">
-      <h1 className="text-3xl mb-6 font-bold text-center">Your Infinite Tsukuyomi</h1>
+    <div style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', backgroundColor: 'black', color: 'white' }}>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>🌌 Your Infinite Tsukuyomi</h1>
 
-      {isLoading && <p>Loading your fantasy image...</p>}
-
-      {!isLoading && mergedImageUrl && (
+      {isLoading ? (
+        <p>Generating your fantasy image...</p>
+      ) : finalImage ? (
         <img
-          src={mergedImageUrl}
-          alt="Your fantasy merged image"
-          className="max-w-full rounded-lg shadow-lg"
+          src={finalImage}
+          alt="Your Fantasy World"
+          style={{ maxWidth: '100%', borderRadius: '1rem', boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)' }}
         />
-      )}
-
-      {!isLoading && !mergedImageUrl && error && (
-        <p className="text-red-500 mt-4">{error}</p>
+      ) : (
+        <p style={{ color: 'red' }}>⚠️ Missing quiz answers or selfie. Please go back and try again.</p>
       )}
     </div>
   );
