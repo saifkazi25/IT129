@@ -28,7 +28,7 @@ export async function generateFantasyImage({
     throw new Error("SDXL prediction failed to start.");
   }
 
-  // Poll the status endpoint
+  // Poll status until done
   let prediction;
   while (
     !prediction ||
@@ -46,5 +46,6 @@ export async function generateFantasyImage({
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
-  return prediction.output[0]; // Return the image URL
+  return prediction.output[0];
 }
+
