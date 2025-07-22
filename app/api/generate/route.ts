@@ -10,18 +10,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing quizAnswers or selfieUrl" }, { status: 400 });
     }
 
-    // Build prompt string from quiz answers
     const prompt = `A fantasy portrait of a person in a world with ${quizAnswers.join(
       ", "
     )}, cinematic, magical, ultra-detailed`;
 
     console.log("🎯 Prompt for SDXL:", prompt);
 
-    // Generate fantasy world image
     const fantasyImage = await generateFantasyImage({ prompt });
     console.log("🎨 Fantasy image:", fantasyImage);
 
-    // Merge selfie into the fantasy image
     const finalImageUrl = await mergeFaceIntoImage({
       targetImageUrl: fantasyImage,
       faceImageUrl: selfieUrl,
