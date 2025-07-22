@@ -1,67 +1,75 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function ResultPage() {
   const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchFinalImage = async () => {
+    const fetchMergedImage = async () => {
       try {
-        const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
-        const selfieUrl = localStorage.getItem('selfieUrl');
+        const storedQuizAnswers = localStorage.getItem('quizAnswers');
+        const storedSelfieUrl = localStorage.getItem('selfieDataUrl');
 
-        if (!quizAnswers.length || !selfieUrl) {
-          setError('Missing quiz answers or selfie. Please go back and try again.');
-          setLoading(false);
+        if (!storedQuizAnswers || !storedSelfieUrl) {
+          setError('Missing quiz answers or selfie');
+          setIsLoading(false);
           return;
         }
+
+        const quizAnswers = JSON.parse(storedQuizAnswers);
 
         const response = await fetch('/api/generate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ quizAnswers, selfieUrl }),
+          body: JSON.stringify({
+            quizAnswers,
+            selfieDataUrl: storedSelfieUrl,
+          }),
         });
 
-        const data = await response.json();
-
-        if (data && data.finalImageUrl) {
-          setMergedImageUrl(data.finalImageUrl);
-        } else {
-          setError('Failed to generate image. Please try again.');
+        if (!response.ok) {
+          throw new Error('Failed to generate image');
         }
-      } catch (err) {
-        console.error('Error generating image:', err);
-        setError('Something went wrong. Please try again.');
+
+        const data = await response.json();
+        if (data.finalImage) {
+          setMergedImageUrl(data.finalImage);
+        } else {
+          setError('Image not generated');
+        }
+      } catch (err: any) {
+        console.error('⚠️ Error generating image:', err);
+        setError('An error occurred. Please try again.');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchFinalImage();
+    fetchMergedImage();
   }, []);
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-3xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-black text-white">
+      <h1 className="text-3xl mb-6 font-bold text-center">Your Infinite Tsukuyomi</h1>
 
-      {loading && <p className="text-lg animate-pulse">Generating your fantasy image...</p>}
+      {isLoading && <p>Loading your fantasy image...</p>}
 
-      {!loading && error && (
-        <p className="text-red-600 text-center">{error}</p>
-      )}
-
-      {!loading && mergedImageUrl && (
+      {!isLoading && mergedImageUrl && (
         <img
           src={mergedImageUrl}
-          alt="Your Infinite Tsukuyomi"
-          className="max-w-full rounded-lg shadow-lg mt-6"
+          alt="Your fantasy merged image"
+          className="max-w-full rounded-lg shadow-lg"
         />
       )}
-    </main>
+
+      {!isLoading && !mergedImageUrl && error && (
+        <p className="text-red-500 mt-4">{error}</p>
+      )}
+    </div>
   );
 }
