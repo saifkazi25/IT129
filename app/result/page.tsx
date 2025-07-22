@@ -1,96 +1,68 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const fetchImage = async () => {
-      const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
-      const selfieUrl = localStorage.getItem("selfieUrl");
+    const generateImage = async () => {
+      const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
+      const selfieDataUrl = localStorage.getItem('selfieDataUrl');
 
-      if (!quizAnswers.length || !selfieUrl) {
-        setError("Missing quiz answers or selfie. Please go back and try again.");
+      if (!quizAnswers.length || !selfieDataUrl) {
+        setError(true);
         setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch("/api/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ quizAnswers, selfieUrl }),
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quizAnswers, selfieDataUrl }),
         });
 
         const data = await response.json();
-        console.log("🖼 Generated image result:", data);
+        console.log('🌟 Final result payload:', data);
 
-        const returnedUrl =
-          data.imageUrl ||
-          data.output ||
-          (Array.isArray(data) && typeof data[0] === "string" ? data[0] : null);
-
-        if (!returnedUrl) {
-          throw new Error("Image generation failed. No URL returned.");
+        if (data.mergedImageUrl) {
+          setMergedImageUrl(data.mergedImageUrl);
+        } else {
+          setError(true);
         }
-
-        setImageUrl(returnedUrl);
-      } catch (err: any) {
-        console.error("❌ Image generation error:", err);
-        setError(err.message || "Something went wrong.");
+      } catch (err) {
+        console.error('❌ Error generating image:', err);
+        setError(true);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchImage();
+    generateImage();
   }, []);
 
-  const handleRetry = () => {
-    router.push("/");
-  };
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-black text-white">
-      <h1 className="text-3xl font-bold mb-6">Your Infinite Tsukuyomi</h1>
+    <div className="p-6 flex flex-col items-center">
+      <h1 className="text-3xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
 
-      {loading && <p className="text-lg animate-pulse">Generating your fantasy world...</p>}
+      {loading && <p className="text-lg">🧠 Generating your fantasy scene...</p>}
 
-      {error && (
-        <div className="text-red-500 text-center space-y-4">
-          <p>{error}</p>
-          <button
-            onClick={handleRetry}
-            className="mt-4 bg-red-600 hover:bg-red-700 px-6 py-2 rounded"
-          >
-            Try Again
-          </button>
-        </div>
+      {!loading && error && (
+        <p className="text-red-600 text-center mt-4">
+          ⚠️ Missing quiz answers or selfie. Please go back and try again.
+        </p>
       )}
 
-      {!loading && imageUrl && (
-        <div className="flex flex-col items-center">
-          <Image
-            src={imageUrl}
-            alt="Your fantasy world"
-            width={512}
-            height={512}
-            className="rounded-lg shadow-lg mb-4"
+      {!loading && mergedImageUrl && (
+        <div className="mt-6">
+          <img
+            src={mergedImageUrl}
+            alt="Final Fantasy Image with Your Face"
+            className="rounded-xl shadow-lg max-w-full"
           />
-          <button
-            onClick={handleRetry}
-            className="mt-4 bg-white text-black px-6 py-2 rounded hover:bg-gray-200"
-          >
-            Create Another
-          </button>
         </div>
       )}
     </div>
