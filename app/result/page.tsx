@@ -1,67 +1,72 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ResultPage() {
-  const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchFinalImage = async () => {
+    const fetchResult = async () => {
       try {
-        const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
-        const selfieUrl = localStorage.getItem('selfieUrl');
-
-        if (!quizAnswers.length || !selfieUrl) {
-          setError('Missing quiz answers or selfie. Please go back and try again.');
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ quizAnswers, selfieUrl }),
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
         });
 
-        const data = await response.json();
-
-        if (data && data.finalImageUrl) {
-          setMergedImageUrl(data.finalImageUrl);
+        const data = await res.json();
+        if (data?.finalImageUrl) {
+          setImageUrl(data.finalImageUrl);
         } else {
-          setError('Failed to generate image. Please try again.');
+          console.error("No image URL found in response:", data);
         }
       } catch (err) {
-        console.error('Error generating image:', err);
-        setError('Something went wrong. Please try again.');
+        console.error("Error fetching result:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFinalImage();
+    fetchResult();
   }, []);
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-3xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
-
-      {loading && <p className="text-lg animate-pulse">Generating your fantasy image...</p>}
-
-      {!loading && error && (
-        <p className="text-red-600 text-center">{error}</p>
+    <div className="w-screen h-screen flex items-center justify-center bg-black relative">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-white" />
+        </div>
       )}
 
-      {!loading && mergedImageUrl && (
-        <img
-          src={mergedImageUrl}
-          alt="Your Infinite Tsukuyomi"
-          className="max-w-full rounded-lg shadow-lg mt-6"
-        />
+      {!loading && imageUrl && (
+        <>
+          <img
+            src={imageUrl}
+            alt="Your Fantasy Image"
+            className="w-full h-full object-cover"
+            onLoad={() => setLoading(false)}
+          />
+
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4 z-20">
+            <button
+              onClick={() => router.push("/")}
+              className="bg-white text-black px-4 py-2 rounded-xl font-semibold shadow-md hover:bg-gray-200 transition"
+            >
+              Go Back
+            </button>
+
+            <a
+              href={imageUrl}
+              download="my_fantasy_image.png"
+              className="bg-white text-black px-4 py-2 rounded-xl font-semibold shadow-md hover:bg-gray-200 transition"
+            >
+              Download Image
+            </a>
+          </div>
+        </>
       )}
-    </main>
+    </div>
   );
 }
