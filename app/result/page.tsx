@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 
 export default function ResultPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchResult = async () => {
+    const fetchImage = async () => {
       try {
         const res = await fetch("/api/generate", {
           method: "POST",
@@ -16,42 +15,39 @@ export default function ResultPage() {
         });
 
         const data = await res.json();
-
         if (res.ok && data.finalImageUrl) {
           setImageUrl(data.finalImageUrl);
         } else {
-          setError(data?.error || "Something went wrong. Try again.");
+          console.error("Image generation failed:", data);
         }
-      } catch (err) {
-        console.error("API error:", err);
-        setError("Failed to generate image. Please try again.");
+      } catch (error) {
+        console.error("API error:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchResult();
+    fetchImage();
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white text-center px-4">
       {loading ? (
-        <div className="animate-pulse text-lg">🌙 Generating your Infinite Tsukuyomi...</div>
-      ) : error ? (
-        <div className="text-red-400 text-lg">{error}</div>
-      ) : (
-        <div className="space-y-4">
-          <h1 className="text-3xl font-bold">Your Infinite Tsukuyomi is Ready</h1>
-          <p className="text-md">Click below to enter your dream reality:</p>
+        <p className="animate-pulse text-xl">🌙 Generating your Infinite Tsukuyomi...</p>
+      ) : imageUrl ? (
+        <>
+          <h1 className="text-3xl font-bold mb-4">Your Infinite Tsukuyomi</h1>
           <a
-            href={imageUrl!}
+            href={imageUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block bg-white text-black font-semibold px-6 py-3 rounded-xl hover:bg-gray-300 transition"
+            className="bg-white text-black px-6 py-3 rounded-xl text-lg font-semibold hover:bg-gray-300 transition"
           >
-            View Your Fantasy Image
+            View Your Infinite Tsukuyomi
           </a>
-        </div>
+        </>
+      ) : (
+        <p className="text-red-500">Something went wrong. Please try again.</p>
       )}
     </div>
   );
