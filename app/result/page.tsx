@@ -3,66 +3,65 @@
 import React, { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchGeneratedImage = async () => {
+    const fetchFinalImage = async () => {
       try {
-        // Make the API call to trigger generation
+        const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
+        const selfieUrl = localStorage.getItem('selfieUrl');
+
+        if (!quizAnswers.length || !selfieUrl) {
+          setError('Missing quiz answers or selfie. Please go back and try again.');
+          setLoading(false);
+          return;
+        }
+
         const response = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            // Inject answers/selfie from a centralized state here if needed
-            quizAnswers: [
-              'Magic', 'London', 'Wizard', 'Robe', 'Castle', 'Fun', 'Fire',
-            ],
-            selfieUrl: 'https://res.cloudinary.com/djm1jppes/image/upload/v1753204824/bubzveqm731ukjirl5xf.jpg',
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ quizAnswers, selfieUrl }),
         });
 
         const data = await response.json();
 
-        if (response.ok && data.finalImageUrl) {
-          setImageUrl(data.finalImageUrl);
+        if (data && data.finalImageUrl) {
+          setMergedImageUrl(data.finalImageUrl);
         } else {
-          console.error('❌ Generation failed:', data);
-          setError('Something went wrong while generating your fantasy image.');
+          setError('Failed to generate image. Please try again.');
         }
       } catch (err) {
-        console.error('❌ API error:', err);
-        setError('Failed to generate the image. Please try again.');
+        console.error('Error generating image:', err);
+        setError('Something went wrong. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGeneratedImage();
+    fetchFinalImage();
   }, []);
 
   return (
-    <div style={{ textAlign: 'center', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
-        Your Infinite Tsukuyomi
-      </h1>
+    <main className="flex flex-col items-center justify-center min-h-screen p-4">
+      <h1 className="text-3xl font-bold mb-4">🌌 Your Infinite Tsukuyomi</h1>
 
-      {loading && <p>✨ Generating your fantasy image...</p>}
+      {loading && <p className="text-lg animate-pulse">Generating your fantasy image...</p>}
 
-      {error && (
-        <div style={{ color: 'red', marginTop: '1rem' }}>{error}</div>
+      {!loading && error && (
+        <p className="text-red-600 text-center">{error}</p>
       )}
 
-      {imageUrl && !error && (
-        <div>
-          <img
-            src={imageUrl}
-            alt="Your fantasy world"
-            style={{ maxWidth: '100%', marginTop: '1rem', borderRadius: '12px' }}
-          />
-        </div>
+      {!loading && mergedImageUrl && (
+        <img
+          src={mergedImageUrl}
+          alt="Your Infinite Tsukuyomi"
+          className="max-w-full rounded-lg shadow-lg mt-6"
+        />
       )}
-    </div>
+    </main>
   );
 }
