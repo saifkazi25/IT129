@@ -3,68 +3,65 @@
 import React, { useEffect, useState } from 'react';
 
 export default function ResultPage() {
-  const [finalImage, setFinalImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const generateImage = async () => {
-      const storedAnswers = localStorage.getItem('quizAnswers');
-      const storedSelfie = localStorage.getItem('selfieDataUrl');
-
-      if (!storedAnswers || !storedSelfie) {
-        console.warn('Missing data in localStorage');
-        setIsLoading(false);
-        return;
-      }
-
+    const fetchGeneratedImage = async () => {
       try {
-        const quizAnswers: string[] = JSON.parse(storedAnswers);
-        const selfieDataUrl: string = storedSelfie;
-
-        console.log('✅ Retrieved quizAnswers from localStorage:', quizAnswers);
-        console.log('📸 Retrieved selfieDataUrl from localStorage:', selfieDataUrl);
-
-        const payload = { quizAnswers, selfieDataUrl };
-        console.log('🧪 Final payload to /api/generate:', payload);
-
-        const res = await fetch('/api/generate', {
+        // Make the API call to trigger generation
+        const response = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            // Inject answers/selfie from a centralized state here if needed
+            quizAnswers: [
+              'Magic', 'London', 'Wizard', 'Robe', 'Castle', 'Fun', 'Fire',
+            ],
+            selfieUrl: 'https://res.cloudinary.com/djm1jppes/image/upload/v1753204824/bubzveqm731ukjirl5xf.jpg',
+          }),
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        if (data.finalImageUrl) {
-          console.log('🌟 Final merged image URL:', data.finalImageUrl);
-          setFinalImage(data.finalImageUrl);
+        if (response.ok && data.finalImageUrl) {
+          setImageUrl(data.finalImageUrl);
         } else {
-          console.error('No image returned from backend:', data);
+          console.error('❌ Generation failed:', data);
+          setError('Something went wrong while generating your fantasy image.');
         }
-      } catch (error) {
-        console.error('❌ Error generating image:', error);
+      } catch (err) {
+        console.error('❌ API error:', err);
+        setError('Failed to generate the image. Please try again.');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    generateImage();
+    fetchGeneratedImage();
   }, []);
 
   return (
-    <div style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', backgroundColor: 'black', color: 'white' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem' }}>🌌 Your Infinite Tsukuyomi</h1>
+    <div style={{ textAlign: 'center', padding: '2rem' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+        Your Infinite Tsukuyomi
+      </h1>
 
-      {isLoading ? (
-        <p>Generating your fantasy image...</p>
-      ) : finalImage ? (
-        <img
-          src={finalImage}
-          alt="Your Fantasy World"
-          style={{ maxWidth: '100%', borderRadius: '1rem', boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)' }}
-        />
-      ) : (
-        <p style={{ color: 'red' }}>⚠️ Missing quiz answers or selfie. Please go back and try again.</p>
+      {loading && <p>✨ Generating your fantasy image...</p>}
+
+      {error && (
+        <div style={{ color: 'red', marginTop: '1rem' }}>{error}</div>
+      )}
+
+      {imageUrl && !error && (
+        <div>
+          <img
+            src={imageUrl}
+            alt="Your fantasy world"
+            style={{ maxWidth: '100%', marginTop: '1rem', borderRadius: '12px' }}
+          />
+        </div>
       )}
     </div>
   );
