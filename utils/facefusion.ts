@@ -25,11 +25,10 @@ export async function mergeFaceIntoImage({
 
   const result = await response.json();
 
-  if (!result || !result.urls || !result.urls.get) {
+  if (!result?.urls?.get) {
     throw new Error("FaceFusion failed to start prediction.");
   }
 
-  // Poll the result endpoint
   let prediction;
   while (
     !prediction ||
@@ -44,9 +43,8 @@ export async function mergeFaceIntoImage({
     prediction = await res.json();
     if (prediction.status === "succeeded") break;
     if (prediction.status === "failed") throw new Error("FaceFusion failed.");
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // wait before retry
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   return prediction.output;
 }
-
