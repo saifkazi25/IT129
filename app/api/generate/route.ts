@@ -23,10 +23,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing selfieUrl' }, { status: 400 });
     }
 
-    console.log('🔮 Prompt:', quizAnswers.join(', '));
-    const fantasyImageUrl = await generateFantasyImage(quizAnswers);
+    // Turn quizAnswers into a prompt string
+    const prompt = quizAnswers.join(', ');
+    console.log('🔮 Prompt:', prompt);
+
+    // Pass the prompt object to SDXL
+    const fantasyImageUrl = await generateFantasyImage({ prompt });
     console.log('✅ Fantasy Image:', fantasyImageUrl);
 
+    // Face fusion
     const mergedImageUrl = await mergeFaceIntoImage({
       targetImageUrl: fantasyImageUrl,
       faceImageUrl: selfieUrl,
