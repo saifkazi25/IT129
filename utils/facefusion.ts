@@ -18,13 +18,22 @@ export async function mergeFaces(targetImageUrl: string, sourceImageUrl: string)
   };
 
   try {
-    const output = (await replicate.run(
+    const output = await replicate.run(
       'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
       { input }
-    )) as string;
+    );
 
-    console.log('✅ FaceFusion result:', output);
-    return output;
+    console.log('✅ FaceFusion raw output:', output);
+
+    // Some versions return object with URL, others return array
+    const result =
+      typeof output === 'string'
+        ? output
+        : Array.isArray(output)
+        ? output[0]
+        : (output as any)?.[0] ?? null;
+
+    return result;
   } catch (error) {
     console.error('❌ FaceFusion failed:', error);
     return null;
