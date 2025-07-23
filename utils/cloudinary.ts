@@ -1,18 +1,19 @@
-import cloudinary from 'cloudinary';
-
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import axios from 'axios';
 
 export async function uploadImageToCloudinary(imageUrl: string): Promise<string> {
-  console.log('☁️ Uploading to Cloudinary:', imageUrl);
+  console.log('⬆️ Uploading fantasy image to Cloudinary:', imageUrl);
 
-  const res = await cloudinary.v2.uploader.upload(imageUrl, {
-    folder: 'infinite_tsukuyomi',
-  });
+  const formData = new FormData();
+  formData.append('file', imageUrl);
+  formData.append('upload_preset', 'infinite_tsukuyomi');
 
-  console.log('✅ Cloudinary response:', res);
-  return res.secure_url;
+  const response = await axios.post(
+    'https://api.cloudinary.com/v1_1/djm1jppes/image/upload',
+    formData
+  );
+
+  const uploadedUrl = response.data.secure_url;
+  console.log('☁️ Cloudinary uploaded URL:', uploadedUrl);
+
+  return uploadedUrl;
 }
