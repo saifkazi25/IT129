@@ -1,41 +1,57 @@
-import Replicate from 'replicate';
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
-
-export async function mergeFaces(targetImageUrl: string, sourceImageUrl: string): Promise<string | null> {
-  console.log('📸 Merging selfie:', sourceImageUrl);
-  console.log('🖼️ With fantasy image:', targetImageUrl);
-
-  const input = {
-    target_image: targetImageUrl,
-    source_image: sourceImageUrl,
-    mode: 'overwrite',
-    detect_alignment: true,
-    paste_back: true,
-    watermark: false,
-  };
-
+export async function mergeFaces(selfieUrl: string, fantasyImageUrl: string): Promise<string | null> {
   try {
-    const output = await replicate.run(
-      'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
-      { input }
-    );
+    console.log("📸 Merging selfie:", fantasyImageUrl);
+    console.log("🖼️ With fantasy image:", selfieUrl);
 
-    console.log('✅ FaceFusion raw output:', output);
+    const response = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7", // FaceFusion
+        input: {
+          template_image: fantasyImageUrl, // 🟢 Correct field
+          user_image: selfieUrl,           // 🟢 Correct field
+          use_cropping: true,
+          similarity: 0.8,
+        },
+      }),
+    });
 
-    // Some versions return object with URL, others return array
-    const result =
-      typeof output === 'string'
-        ? output
-        : Array.isArray(output)
-        ? output[0]
-        : (output as any)?.[0] ?? null;
+    const result = await response.json();
 
-    return result;
+    if (!response.ok) {
+      console.error("❌ FaceFusion failed:", result);
+      return null;
+    }
+
+    const predictionId = result.id;
+
+    let mergedImageUrl = null;
+    while (!mergedImageUrl) {
+      const poll = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: {
+          Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+        },
+      });
+
+      const pollResult = await poll.json();
+
+      if (pollResult.status === "succeeded") {
+        mergedImageUrl = pollResult.output?.[0] || null;
+      } else if (pollResult.status === "failed") {
+        console.error("❌ FaceFusion polling failed:", pollResult);
+        return null;
+      }
+
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    return mergedImageUrl;
   } catch (error) {
-    console.error('❌ FaceFusion failed:', error);
+    console.error("🔥 mergeFaces error:", error);
     return null;
   }
 }
