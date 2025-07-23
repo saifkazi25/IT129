@@ -7,15 +7,15 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model version
+        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model
         input: {
-          prompt: `A fantasy character standing confidently in the center of the scene, facing directly forward. The face should be clearly visible and expressive. Include the full body in a fantasy-themed outfit, placed in a colorful, dreamlike background. Inspired by: ${prompt}`,
+          prompt: `A fantasy scene showing a full-body portrait of a confident person standing in the center, facing forward. The face should be clearly visible and expressive, suitable for face fusion. The person is wearing detailed, fantasy-themed clothing. The background is vibrant and dreamlike, with surreal landscapes, glowing skies, and magical elements. Inspired by: ${prompt}`,
           refine: "no_refiner",
           width: 1024,
           height: 1024,
           scheduler: "K_EULER",
           num_outputs: 1,
-          num_inference_steps: 30, // reduced for faster generation
+          num_inference_steps: 30, // Faster generation, good quality
           guidance_scale: 7.5,
         },
       }),
@@ -30,7 +30,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
 
     const predictionId = result.id;
 
-    // Polling loop until image is ready
+    // Polling loop until generation completes
     let imageUrl = null;
     while (!imageUrl) {
       const poll = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -48,7 +48,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         return null;
       }
 
-      await new Promise((r) => setTimeout(r, 1000)); // 1s wait
+      await new Promise((r) => setTimeout(r, 1000)); // wait 1 second before next poll
     }
 
     return imageUrl;
