@@ -5,27 +5,28 @@ import { mergeFaces } from '../../../utils/facefusion';
 
 export async function POST(req: NextRequest) {
   try {
-    const { quizAnswers, selfieUrl } = await req.json(); // ✅ FIXED
+    const bodyText = await req.text(); // Read raw body as text
+    const { quizAnswers, selfieUrl } = JSON.parse(bodyText); // Parse JSON manually
 
     console.log('📥 Incoming quizAnswers:', quizAnswers);
     console.log('📥 Incoming selfieUrl:', selfieUrl);
 
-    if (!quizAnswers || quizAnswers.length !== 7 || !selfieUrl) {
-      console.error('❌ Missing input data', { quizAnswers, selfieUrl });
+    // Validate input
+    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7 || !selfieUrl) {
+      console.error('❌ Missing or invalid input data', { quizAnswers, selfieUrl });
       return NextResponse.json(
         { message: 'Missing quiz answers or selfie URL' },
         { status: 400 }
       );
     }
 
-    // Step 1: Generate fantasy image with SDXL
-    const prompt = `A fantasy portrait of a person in a surreal world inspired by: ${quizAnswers.join(
-      ', '
-    )}, cinematic lighting, ultra-detailed, 4k, front-facing face, vivid colors`;
-    console.log('📝 SDXL Prompt:', prompt);
-
-    const fantasyImage = await generateFantasyImage(prompt);
+    // Step 1: Generate fantasy image with SDXL using quiz answers
+    const fantasyImage = await generateFantasyImage(quizAnswers);
     console.log('✨ SDXL fantasy image generated:', fantasyImage);
+
+    if (!fantasyImage) {
+      throw new Error('Fantasy image generation failed');
+    }
 
     // Step 2: Upload fantasy image to Cloudinary
     const fantasyImageUrl = await uploadImageToCloudinary(fantasyImage);
