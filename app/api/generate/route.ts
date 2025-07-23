@@ -1,48 +1,35 @@
-import { NextResponse } from "next/server";
-import { generateFantasyImage } from "../../../utils/replicate";
-import { uploadToCloudinary } from "../../../utils/cloudinary";
-import { mergeFaces } from "../../../utils/facefusion";
+import { NextRequest, NextResponse } from 'next/server';
+import { generateFantasyImage } from '../../../utils/replicate';
+import { uploadImageToCloudinary } from '../../../utils/cloudinary';
+import { mergeFaces } from '../../../utils/facefusion';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { quizAnswers, selfieUrl } = body;
+    const { quizAnswers, selfieUrl } = await req.json();
 
-    console.log("✅ Incoming quizAnswers:", quizAnswers);
-    console.log("✅ Incoming selfieUrl:", selfieUrl);
+    console.log('📥 Incoming quizAnswers:', quizAnswers);
+    console.log('📥 Incoming selfieUrl:', selfieUrl);
 
-    if (
-      !quizAnswers ||
-      !Array.isArray(quizAnswers) ||
-      quizAnswers.length !== 7 ||
-      !selfieUrl ||
-      typeof selfieUrl !== "string" ||
-      !selfieUrl.startsWith("https://")
-    ) {
-      console.error("❌ Missing or invalid input data", { quizAnswers, selfieUrl });
-      return NextResponse.json({ error: "Missing or invalid input data" }, { status: 400 });
+    if (!quizAnswers || quizAnswers.length !== 7 || !selfieUrl) {
+      console.error('❌ Missing input data', { quizAnswers, selfieUrl });
+      return NextResponse.json({ message: 'Missing quiz answers or selfie URL' }, { status: 400 });
     }
 
-    // Step 1: Create prompt
-    const prompt = `An epic fantasy illustration featuring a ${quizAnswers[2]} in ${quizAnswers[1]} wearing a ${quizAnswers[3]}, surrounded by the theme of ${quizAnswers[4]}. The character is associated with the concept of ${quizAnswers[6]}. The style is vibrant, cinematic, highly detailed, front-facing, ultra-realistic face, award-winning concept art.`;
+    const prompt = `A fantasy portrait of a person in a surreal world inspired by: ${quizAnswers.join(', ')}, dramatic lighting, 4k detailed, front-facing`;
+    console.log('📝 SDXL Prompt:', prompt);
 
-    console.log("🖼 Generating fantasy image with prompt:", prompt);
+    const fantasyImage = await generateFantasyImage(prompt);
+    console.log('✨ SDXL fantasy image generated:', fantasyImage);
 
-    // ✅ FIXED: pass as object
-    const fantasyImageUrl = await generateFantasyImage({ prompt });
-    console.log("✨ SDXL fantasy image generated:", fantasyImageUrl);
+    const uploadedFantasyUrl = await uploadImageToCloudinary(fantasyImage);
+    console.log('☁️ Uploaded fantasy image to Cloudinary:', uploadedFantasyUrl);
 
-    // Step 3: Upload fantasy image to Cloudinary
-    const uploadedFantasyUrl = await uploadToCloudinary(fantasyImageUrl);
-    console.log("☁️ Fantasy image uploaded to Cloudinary:", uploadedFantasyUrl);
-
-    // Step 4: Merge selfie with fantasy image
     const mergedImageUrl = await mergeFaces(selfieUrl, uploadedFantasyUrl);
-    console.log("🧬 Final merged image URL:", mergedImageUrl);
+    console.log('🧬 Final merged image URL:', mergedImageUrl);
 
     return NextResponse.json({ mergedImageUrl });
-  } catch (error) {
-    console.error("💥 Unexpected error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (err: any) {
+    console.error('🔥 /api/generate error:', err);
+    return NextResponse.json({ message: err.message || 'Internal server error' }, { status: 500 });
   }
 }
