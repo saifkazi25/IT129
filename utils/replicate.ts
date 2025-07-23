@@ -7,9 +7,9 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model version
         input: {
-          prompt: `A full-body portrait of a confident person standing in the center, facing forward with a clearly visible, expressive face. The outfit, pose, and visual style are inspired by: ${prompt}. The background should be a rich, immersive environment that also reflects those same inspirations — incorporating locations, colors, objects, or moods based on: ${prompt}. Make the entire scene fun, dynamic, and cinematic.`,
+          prompt: `A full-body portrait of a confident person standing in the center, facing forward with a clearly visible, expressive face. Their outfit and environment should be inspired by: ${prompt}. The background should reflect elements from those inspirations — such as location, colors, mood, or objects — creating a fun, dynamic, cinematic scene.`,
           refine: "no_refiner",
           width: 1024,
           height: 1024,
@@ -48,7 +48,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         return null;
       }
 
-      await new Promise((r) => setTimeout(r, 1000)); // 1s wait
+      await new Promise((r) => setTimeout(r, 1000)); // wait 1 second before next poll
     }
 
     return imageUrl;
@@ -57,4 +57,3 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
     return null;
   }
 }
-
