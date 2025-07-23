@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 
 export default function ResultPage() {
   const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -14,13 +13,18 @@ export default function ResultPage() {
         const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
         const selfieUrl = localStorage.getItem("selfieUrl");
 
-        console.log("📥 quizAnswers:", quizAnswers);
-        console.log("📥 selfieUrl:", selfieUrl);
-
         if (!quizAnswers.length || !selfieUrl) {
-          setError("Missing quiz answers or selfie.");
+          console.error("Missing data");
           return;
         }
+
+        // Start a fake progress bar animation
+        let interval = setInterval(() => {
+          setProgress((prev) => {
+            if (prev >= 95) return prev;
+            return prev + 1 + Math.random(); // smoother
+          });
+        }, 120);
 
         const response = await fetch("/api/generate", {
           method: "POST",
@@ -31,19 +35,13 @@ export default function ResultPage() {
         });
 
         const data = await response.json();
-        console.log("🧠 Response from /api/generate:", data);
-
-        if (!response.ok || !data.mergedImageUrl) {
-          setError("Image generation failed. Please try again.");
-          return;
-        }
-
-        setMergedImageUrl(data.mergedImageUrl);
+        clearInterval(interval);
+        setProgress(100); // complete bar
+        setMergedImageUrl(data.mergedImageUrl || null);
       } catch (err) {
-        console.error("❌ Error fetching merged image:", err);
-        setError("An unexpected error occurred.");
+        console.error("❌ Error loading image", err);
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 1000); // small delay for smooth transition
       }
     };
 
@@ -53,25 +51,30 @@ export default function ResultPage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-8">
       {loading ? (
-        <div className="text-center">
+        <div className="text-center w-full max-w-md">
           <h2 className="text-xl mb-4 font-semibold">Generating your fantasy world...</h2>
-          <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500 animate-pulse" style={{ width: "100%" }} />
+          <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
           </div>
+          <p className="mt-2 text-sm text-gray-400">{Math.floor(progress)}%</p>
         </div>
-      ) : error ? (
-        <p className="text-red-400 mt-6">❌ {error}</p>
       ) : mergedImageUrl ? (
-        <div>
-          <Image
+        <div className="flex flex-col items-center">
+          <h2 className="text-xl font-semibold mb-4">✨ Your Fantasy Image is Ready!</h2>
+          <img
             src={mergedImageUrl}
-            alt="Your Fantasy World"
+            alt="Fantasy Image"
             width={512}
             height={512}
-            className="rounded-xl border mt-6"
+            className="rounded-xl border mt-4"
           />
         </div>
-      ) : null}
+      ) : (
+        <p className="text-red-400">❌ Failed to generate image. Try again.</p>
+      )}
     </div>
   );
 }
