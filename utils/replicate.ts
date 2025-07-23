@@ -1,40 +1,59 @@
-import Replicate from 'replicate';
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
-
-export async function generateFantasyImage(quizAnswers: string[]): Promise<string | null> {
-  const prompt = `A highly detailed fantasy scene featuring a person in a vivid, surreal setting inspired by: ${quizAnswers.join(
-    ', '
-  )}. The person should be standing clearly in the center, facing forward, fantasy-themed outfit, high resolution.`;
-
-  console.log('🎨 SDXL prompt:', prompt);
-
-  const input = {
-    prompt,
-    width: 1024,
-    height: 1024,
-    refine: 'expert_ensemble',
-    scheduler: 'K_EULER',
-    num_outputs: 1,
-    guidance_scale: 7,
-    apply_watermark: false,
-    high_noise_frac: 0.8,
-    negative_prompt:
-      'blurry, distorted, low quality, cropped, face not visible, back turned, extra limbs, watermark, text',
-  };
-
+export async function generateFantasyImage(prompt: string): Promise<string | null> {
   try {
-    const output = (await replicate.run(
-      'stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc',
-      { input }
-    )) as string[];
+    const response = await fetch("https://api.replicate.com/v1/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+        input: {
+          prompt,
+          refine: "no_refiner", // ✅ Add this line
+          width: 1024,
+          height: 1024,
+          scheduler: "K_EULER",
+          num_outputs: 1,
+          num_inference_steps: 50,
+          guidance_scale: 7.5,
+        },
+      }),
+    });
 
-    console.log('✅ SDXL output:', output);
-    return output?.[0] || null;
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ SDXL API error:", result);
+      return null;
+    }
+
+    const predictionId = result.id;
+
+    // Polling until prediction is complete
+    let imageUrl = null;
+    while (!imageUrl) {
+      const poll = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: {
+          Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+        },
+      });
+
+      const pollResult = await poll.json();
+
+      if (pollResult.status === "succeeded") {
+        imageUrl = pollResult.output?.[0] || null;
+      } else if (pollResult.status === "failed") {
+        console.error("❌ SDXL generation failed:", pollResult);
+        return null;
+      }
+
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    return imageUrl;
   } catch (error) {
-    console.error('❌ SDXL generation failed:', error);
+    console.error("🔥 generateFantasyImage error:", error);
     return null;
   }
 }
