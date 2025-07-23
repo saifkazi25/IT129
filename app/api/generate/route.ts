@@ -23,13 +23,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing or invalid input data" }, { status: 400 });
     }
 
-    // Step 1: Create fantasy prompt
+    // Step 1: Create prompt
     const prompt = `An epic fantasy illustration featuring a ${quizAnswers[2]} in ${quizAnswers[1]} wearing a ${quizAnswers[3]}, surrounded by the theme of ${quizAnswers[4]}. The character is associated with the concept of ${quizAnswers[6]}. The style is vibrant, cinematic, highly detailed, front-facing, ultra-realistic face, award-winning concept art.`;
 
     console.log("🖼 Generating fantasy image with prompt:", prompt);
 
-    // Step 2: Generate fantasy image from SDXL
-    const fantasyImageUrl = await generateFantasyImage(prompt);
+    // ✅ FIXED: pass as object
+    const fantasyImageUrl = await generateFantasyImage({ prompt });
     console.log("✨ SDXL fantasy image generated:", fantasyImageUrl);
 
     // Step 3: Upload fantasy image to Cloudinary
