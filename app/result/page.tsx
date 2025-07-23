@@ -3,107 +3,65 @@
 import { useEffect, useState } from "react";
 
 export default function ResultPage() {
-  const [fantasyImageUrl, setFantasyImageUrl] = useState<string | null>(null);
   const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
-  const [loadingFantasy, setLoadingFantasy] = useState(true);
-  const [loadingMerge, setLoadingMerge] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const generateFantasyImage = async () => {
+    const fetchMergedImage = async () => {
+      const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
+      const selfieUrl = localStorage.getItem("selfieUrl");
+
+      if (!quizAnswers.length || !selfieUrl) {
+        setError("Missing quiz answers or selfie");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
-
-        if (!quizAnswers || quizAnswers.length !== 7) {
-          setError("Missing or invalid quiz answers");
-          setLoadingFantasy(false);
-          return;
-        }
-
-        const res = await fetch("/api/generate", {
+        const response = await fetch("/api/generate", {
           method: "POST",
-          body: JSON.stringify({ quizAnswers }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quizAnswers, selfieUrl }),
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        if (res.ok && data.fantasyImageUrl) {
-          setFantasyImageUrl(data.fantasyImageUrl);
+        if (!response.ok) {
+          setError(data.error || "Something went wrong");
         } else {
-          setError("Fantasy image generation failed");
+          setMergedImageUrl(data.mergedImageUrl);
         }
       } catch (err) {
-        console.error("🔥 Unexpected error:", err);
-        setError("Something went wrong");
+        setError("Failed to connect to backend");
       } finally {
-        setLoadingFantasy(false);
+        setLoading(false);
       }
     };
 
-    generateFantasyImage();
+    fetchMergedImage();
   }, []);
 
-  const handleMergeClick = async () => {
-    const selfieUrl = localStorage.getItem("selfieUrl");
-
-    if (!selfieUrl || !fantasyImageUrl) {
-      setError("Missing selfie or fantasy image");
-      return;
-    }
-
-    setLoadingMerge(true);
-
-    try {
-      const res = await fetch("/api/merge", {
-        method: "POST",
-        body: JSON.stringify({ selfieUrl, fantasyImageUrl }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.mergedImageUrl) {
-        setMergedImageUrl(data.mergedImageUrl);
-      } else {
-        setError("Face merge failed");
-      }
-    } catch (err) {
-      console.error("🔥 Merge error:", err);
-      setError("Merge failed");
-    } finally {
-      setLoadingMerge(false);
-    }
-  };
-
   return (
-    <div className="p-6 text-center">
-      <h1 className="text-2xl font-bold mb-4">Your Fantasy Image</h1>
-
-      {loadingFantasy && <p>Generating fantasy world... 🌌</p>}
-      {error && <p className="text-red-500">{error}</p>}
-
-      {!loadingFantasy && fantasyImageUrl && !mergedImageUrl && (
-        <>
-          <img
-            src={fantasyImageUrl}
-            alt="Fantasy Image"
-            className="w-full max-w-xl mx-auto rounded-xl shadow-xl mb-4"
-          />
-          <button
-            onClick={handleMergeClick}
-            className="bg-purple-600 text-white px-6 py-2 rounded-xl hover:bg-purple-700 transition"
-            disabled={loadingMerge}
-          >
-            {loadingMerge ? "Merging..." : "Merge My Face 🧠"}
-          </button>
-        </>
-      )}
-
-      {mergedImageUrl && (
-        <img
-          src={mergedImageUrl}
-          alt="Final Fantasy Image"
-          className="w-full max-w-xl mx-auto rounded-xl shadow-xl mt-6"
-        />
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-900 text-white">
+      {loading ? (
+        <p className="text-xl animate-pulse">🔮 Summoning your fantasy...</p>
+      ) : error ? (
+        <p className="text-red-400 text-lg">{error}</p>
+      ) : (
+        mergedImageUrl && (
+          <div className="flex flex-col items-center space-y-4">
+            <h2 className="text-2xl font-bold mb-2">🌟 Welcome to your fantasy</h2>
+            <img src={mergedImageUrl} alt="Merged Fantasy" className="rounded-xl max-w-full max-h-[80vh] shadow-lg" />
+            <a
+              href={mergedImageUrl}
+              download="your_fantasy.jpg"
+              className="mt-4 bg-white text-black px-4 py-2 rounded hover:bg-gray-200 transition"
+            >
+              ⬇️ Download Image
+            </a>
+          </div>
+        )
       )}
     </div>
   );
