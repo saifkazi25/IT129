@@ -5,8 +5,8 @@ import Image from "next/image";
 
 export default function ResultPage() {
   const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -14,15 +14,13 @@ export default function ResultPage() {
         const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
         const selfieUrl = localStorage.getItem("selfieUrl");
 
+        console.log("📥 quizAnswers:", quizAnswers);
+        console.log("📥 selfieUrl:", selfieUrl);
+
         if (!quizAnswers.length || !selfieUrl) {
-          console.error("Missing data");
+          setError("Missing quiz answers or selfie.");
           return;
         }
-
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-          setProgress((prev) => (prev < 90 ? prev + Math.floor(Math.random() * 5) + 1 : prev));
-        }, 500);
 
         const response = await fetch("/api/generate", {
           method: "POST",
@@ -33,15 +31,19 @@ export default function ResultPage() {
         });
 
         const data = await response.json();
-        clearInterval(progressInterval);
-        setProgress(100); // fill bar
-        setMergedImageUrl(data.mergedImageUrl || null);
+        console.log("🧠 Response from /api/generate:", data);
+
+        if (!response.ok || !data.mergedImageUrl) {
+          setError("Image generation failed. Please try again.");
+          return;
+        }
+
+        setMergedImageUrl(data.mergedImageUrl);
       } catch (err) {
-        console.error("❌ Error loading image", err);
+        console.error("❌ Error fetching merged image:", err);
+        setError("An unexpected error occurred.");
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 800); // add slight delay for smooth UX
+        setLoading(false);
       }
     };
 
@@ -54,26 +56,22 @@ export default function ResultPage() {
         <div className="text-center">
           <h2 className="text-xl mb-4 font-semibold">Generating your fantasy world...</h2>
           <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-indigo-500 transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-indigo-500 animate-pulse" style={{ width: "100%" }} />
           </div>
-          <p className="mt-2 text-sm text-gray-400">{progress}%</p>
         </div>
+      ) : error ? (
+        <p className="text-red-400 mt-6">❌ {error}</p>
       ) : mergedImageUrl ? (
         <div>
           <Image
             src={mergedImageUrl}
-            alt="Fantasy Image"
+            alt="Your Fantasy World"
             width={512}
             height={512}
             className="rounded-xl border mt-6"
           />
         </div>
-      ) : (
-        <p className="text-red-400">❌ Failed to generate image. Try again.</p>
-      )}
+      ) : null}
     </div>
   );
 }
