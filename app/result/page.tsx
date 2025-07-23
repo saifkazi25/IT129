@@ -1,65 +1,78 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
 export default function ResultPage() {
   const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const generateImage = async () => {
+    const fetchImage = async () => {
       try {
-        const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
-        const selfieUrl = localStorage.getItem('selfieUrl');
+        const quizAnswers = JSON.parse(localStorage.getItem("quizAnswers") || "[]");
+        const selfieUrl = localStorage.getItem("selfieUrl");
 
-        if (!quizAnswers || quizAnswers.length !== 7 || !selfieUrl) {
-          setError("Missing quiz answers or selfie");
-          setLoading(false);
+        if (!quizAnswers.length || !selfieUrl) {
+          console.error("Missing data");
           return;
         }
 
-        console.log("🚀 Sending to /api/generate:", { quizAnswers, selfieUrl });
+        // Simulate progress
+        const progressInterval = setInterval(() => {
+          setProgress((prev) => (prev < 90 ? prev + Math.floor(Math.random() * 5) + 1 : prev));
+        }, 500);
 
-        const res = await fetch('/api/generate', {
-          method: 'POST',
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ quizAnswers, selfieUrl }),
         });
 
-        if (!res.ok) {
-          const err = await res.json();
-          console.error("❌ /api/generate error:", err);
-          setError(err.error || 'Failed to generate image');
-          setLoading(false);
-          return;
-        }
-
-        const data = await res.json();
-        console.log("✅ Merged image received:", data.mergedImageUrl);
-        setMergedImageUrl(data.mergedImageUrl);
-        setLoading(false);
+        const data = await response.json();
+        clearInterval(progressInterval);
+        setProgress(100); // fill bar
+        setMergedImageUrl(data.mergedImageUrl || null);
       } catch (err) {
-        console.error("❌ Unexpected error:", err);
-        setError("Something went wrong while generating your image.");
-        setLoading(false);
+        console.error("❌ Error loading image", err);
+      } finally {
+        setTimeout(() => {
+          setLoading(false);
+        }, 800); // add slight delay for smooth UX
       }
     };
 
-    generateImage();
+    fetchImage();
   }, []);
 
-  if (loading) return <div className="p-6 text-xl">🌀 Generating your fantasy image...</div>;
-  if (error) return <div className="p-6 text-red-600">❌ {error}</div>;
-
   return (
-    <div className="p-6 text-center">
-      <h1 className="text-2xl font-bold mb-4">🌟 Your Infinite Tsukuyomi Fantasy 🌟</h1>
-      {mergedImageUrl && (
-        <img
-          src={mergedImageUrl}
-          alt="Your fantasy"
-          className="mx-auto rounded-2xl shadow-lg max-w-full h-auto"
-        />
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-8">
+      {loading ? (
+        <div className="text-center">
+          <h2 className="text-xl mb-4 font-semibold">Generating your fantasy world...</h2>
+          <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="mt-2 text-sm text-gray-400">{progress}%</p>
+        </div>
+      ) : mergedImageUrl ? (
+        <div>
+          <Image
+            src={mergedImageUrl}
+            alt="Fantasy Image"
+            width={512}
+            height={512}
+            className="rounded-xl border mt-6"
+          />
+        </div>
+      ) : (
+        <p className="text-red-400">❌ Failed to generate image. Try again.</p>
       )}
     </div>
   );
