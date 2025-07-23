@@ -3,58 +3,70 @@
 import { useEffect, useState } from 'react';
 
 export default function ResultPage() {
+  const [mergedImageUrl, setMergedImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
-  const [imageUrl, setImageUrl] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
-    const selfieUrl = localStorage.getItem('selfieUrl');
+    const generateImage = async () => {
+      const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
+      const selfieUrl = localStorage.getItem('selfieUrl');
 
-    console.log('✅ Retrieved quizAnswers from localStorage:', quizAnswers);
-    console.log('📸 Retrieved selfieUrl from localStorage:', selfieUrl);
+      console.log('✅ Retrieved quizAnswers from localStorage:', quizAnswers);
+      console.log('✅ Retrieved selfieUrl from localStorage:', selfieUrl);
 
-    if (quizAnswers.length !== 7 || !selfieUrl) {
-      setError('Missing quiz answers or selfie. Please go back and try again.');
-      setLoading(false);
-      return;
-    }
-
-    const payload = { quizAnswers, selfieUrl };
-    console.log('🧪 Final payload to /api/generate:', payload);
-
-    fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          console.error('❌ /api/generate failed:', err);
-          throw new Error(err.message || 'Image generation failed');
-        }
-        return res.json();
-      })
-      .then((data) => {
-        console.log('✅ /api/generate success:', data);
-        setImageUrl(data.mergedImageUrl);
-      })
-      .catch((err) => {
-        console.error('❌ Error in fetch:', err);
-        setError(err.message);
-      })
-      .finally(() => {
+      if (!quizAnswers || quizAnswers.length !== 7 || !selfieUrl) {
+        console.error('❌ Missing quiz answers or selfie');
+        setError('Missing quiz answers or selfie. Please go back and try again.');
         setLoading(false);
-      });
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ quizAnswers, selfieUrl }) // Important: match backend
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Image generation failed');
+        }
+
+        const data = await response.json();
+        setMergedImageUrl(data.mergedImageUrl);
+        setLoading(false);
+      } catch (err: any) {
+        console.error('❌ /api/generate failed:', err);
+        setError(err.message || 'Something went wrong');
+        setLoading(false);
+      }
+    };
+
+    generateImage();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Generating your fantasy image...</p>;
-  if (error) return <p className="text-red-500 text-center mt-10">{error}</p>;
+  if (loading) {
+    return <div className="text-center mt-10 text-xl">🔮 Generating your fantasy image...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center mt-10 text-red-600 text-lg">❌ {error}</div>;
+  }
 
   return (
-    <div className="flex justify-center mt-10">
-      <img src={imageUrl} alt="Final fantasy result" className="rounded-lg shadow-xl max-w-full h-auto" />
+    <div className="text-center mt-10">
+      <h1 className="text-2xl font-bold mb-6">🌌 Your Fantasy World Awaits</h1>
+      {mergedImageUrl && (
+        <img
+          src={mergedImageUrl}
+          alt="Your fantasy image"
+          className="mx-auto max-w-[90%] border rounded-lg shadow-lg"
+        />
+      )}
     </div>
   );
 }
