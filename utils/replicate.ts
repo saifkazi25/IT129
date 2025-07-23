@@ -7,16 +7,16 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model version
+        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model
         input: {
-          prompt: `A fantasy character standing confidently in the center of the scene, full face directly forward. The face should be clearly visible and expressive. Include the full body, outfit, and eventful background. Inspired by: ${prompt}`,
+          prompt: `A full-body character standing confidently facing forward. The face should be clearly visible and expressive. The background and outfit should reflect the following theme: ${prompt}`,
           refine: "no_refiner",
           width: 1024,
           height: 1024,
           scheduler: "K_EULER",
           num_outputs: 1,
-          num_inference_steps: 30, // reduced for faster generation
-          guidance_scale: 7.5,
+          num_inference_steps: 40,         // Increased from 30 → better detail
+          guidance_scale: 8.5,             // Increased from 7.5 → stronger adherence to prompt
         },
       }),
     });
@@ -30,7 +30,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
 
     const predictionId = result.id;
 
-    // Polling loop until image is ready
+    // Polling loop
     let imageUrl = null;
     while (!imageUrl) {
       const poll = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -48,7 +48,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         return null;
       }
 
-      await new Promise((r) => setTimeout(r, 1000)); // 1s wait
+      await new Promise((r) => setTimeout(r, 1000)); // wait 1s
     }
 
     return imageUrl;
