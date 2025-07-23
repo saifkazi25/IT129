@@ -1,23 +1,15 @@
-const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-const UPLOAD_PRESET = "infinite_tsukuyomi";
+import cloudinary from "cloudinary";
 
-export const uploadImageToCloudinary = async (base64: string): Promise<string> => {
-  if (!CLOUD_NAME) throw new Error("Missing CLOUDINARY_CLOUD_NAME");
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-  const formData = new FormData();
-  formData.append("file", base64);
-  formData.append("upload_preset", UPLOAD_PRESET);
-
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-    method: "POST",
-    body: formData,
+export async function uploadToCloudinary(base64Image: string): Promise<string> {
+  const result = await cloudinary.v2.uploader.upload(`data:image/jpeg;base64,${base64Image}`, {
+    folder: "infinite_tsukuyomi",
   });
 
-  const data = await response.json();
-
-  if (!data.secure_url) {
-    throw new Error("Cloudinary upload failed.");
-  }
-
-  return data.secure_url;
-};
+  return result.secure_url;
+}
