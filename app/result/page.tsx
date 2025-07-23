@@ -5,87 +5,61 @@ import React, { useEffect, useState } from 'react';
 export default function ResultPage() {
   const [mergedImageUrl, setMergedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMergedImage = async () => {
+    const generateImage = async () => {
       try {
-        const storedAnswers = localStorage.getItem('quizAnswers');
-        const storedSelfieUrl = localStorage.getItem('selfieUrl');
+        const quizAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '[]');
+        const selfieUrl = localStorage.getItem('selfieUrl');
 
-        if (!storedAnswers || !storedSelfieUrl) {
-          setError('Missing quiz answers or selfie');
+        if (!quizAnswers || quizAnswers.length !== 7 || !selfieUrl) {
+          setError("Missing quiz answers or selfie");
           setLoading(false);
           return;
         }
 
-        const quizAnswers = JSON.parse(storedAnswers);
-        const selfieUrl = storedSelfieUrl;
+        console.log("🚀 Sending to /api/generate:", { quizAnswers, selfieUrl });
 
-        console.log('🚀 Sending to /api/generate:', { quizAnswers, selfieUrl });
-
-        const response = await fetch('/api/generate', {
+        const res = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ quizAnswers, selfieUrl }),
         });
 
-        const data = await response.json();
-
-        if (!response.ok || !data?.mergedImageUrl) {
-          console.error('❌ API error:', data);
-          setError('Image generation failed. Please try again.');
+        if (!res.ok) {
+          const err = await res.json();
+          console.error("❌ /api/generate error:", err);
+          setError(err.error || 'Failed to generate image');
           setLoading(false);
           return;
         }
 
-        console.log('✅ Merged image received:', data.mergedImageUrl);
+        const data = await res.json();
+        console.log("✅ Merged image received:", data.mergedImageUrl);
         setMergedImageUrl(data.mergedImageUrl);
         setLoading(false);
       } catch (err) {
-        console.error('❌ Unexpected error:', err);
-        setError('An unexpected error occurred.');
+        console.error("❌ Unexpected error:", err);
+        setError("Something went wrong while generating your image.");
         setLoading(false);
       }
     };
 
-    fetchMergedImage();
+    generateImage();
   }, []);
 
+  if (loading) return <div className="p-6 text-xl">🌀 Generating your fantasy image...</div>;
+  if (error) return <div className="p-6 text-red-600">❌ {error}</div>;
+
   return (
-    <div style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>🌟 Welcome to your fantasy</h1>
-
-      {loading && <p>Generating your fantasy image...</p>}
-
-      {error && !loading && (
-        <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>
-      )}
-
-      {!loading && mergedImageUrl && (
-        <>
-          <img
-            src={mergedImageUrl}
-            alt="Merged Fantasy"
-            style={{ maxWidth: '100%', borderRadius: '12px', marginTop: '2rem' }}
-          />
-          <br />
-          <a
-            href={mergedImageUrl}
-            download="merged_fantasy.jpg"
-            style={{
-              display: 'inline-block',
-              marginTop: '1rem',
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#0070f3',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-            }}
-          >
-            ⬇️ Download Image
-          </a>
-        </>
+    <div className="p-6 text-center">
+      <h1 className="text-2xl font-bold mb-4">🌟 Your Infinite Tsukuyomi Fantasy 🌟</h1>
+      {mergedImageUrl && (
+        <img
+          src={mergedImageUrl}
+          alt="Your fantasy"
+          className="mx-auto rounded-2xl shadow-lg max-w-full h-auto"
+        />
       )}
     </div>
   );
