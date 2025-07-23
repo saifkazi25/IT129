@@ -7,15 +7,15 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model version
+        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model
         input: {
-          prompt: `A full-body portrait of a confident person standing in the center, facing forward with a clearly visible, expressive face. Their outfit and environment should be inspired by: ${prompt}. The background should reflect elements from those inspirations — such as location, colors, mood, or objects — creating a fun, dynamic, cinematic scene.`,
+          prompt: `A full-body portrait of a person standing confidently in the center, facing forward with a clearly visible face. The outfit and background are based on the following theme: ${prompt}.`,
           refine: "no_refiner",
           width: 1024,
           height: 1024,
           scheduler: "K_EULER",
           num_outputs: 1,
-          num_inference_steps: 30,
+          num_inference_steps: 30, // Optimized for speed + quality
           guidance_scale: 7.5,
         },
       }),
@@ -30,7 +30,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
 
     const predictionId = result.id;
 
-    // Polling loop until image is ready
+    // Poll until generation is complete
     let imageUrl = null;
     while (!imageUrl) {
       const poll = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
