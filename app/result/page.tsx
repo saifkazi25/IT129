@@ -52,7 +52,7 @@ export default function ResultPage() {
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-4 py-8">
       {loading ? (
         <div className="text-center w-full max-w-md">
-          <h2 className="text-xl mb-4 font-semibold">Generating your fantasy world...</h2>
+          <h2 className="text-xl mb-4 font-semibold">Generating your Infinite Tsukuyomi...</h2>
           <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-indigo-500 transition-all duration-300 ease-out"
@@ -63,7 +63,7 @@ export default function ResultPage() {
         </div>
       ) : mergedImageUrl ? (
         <div className="flex flex-col items-center">
-          <h2 className="text-xl font-semibold mb-4">✨ Your Fantasy Image is Ready!</h2>
+          <h2 className="text-xl font-semibold mb-4">✨ Your Infinite Tsukuyomi ✨</h2>
           <img
             src={mergedImageUrl}
             alt="Fantasy Image"
