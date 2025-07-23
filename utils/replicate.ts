@@ -7,10 +7,10 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+        version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model version
         input: {
-          prompt,
-          refine: "no_refiner", // ✅ Add this line
+          prompt: `A high-resolution fantasy portrait of a confident person standing in the center of the frame, facing directly forward. Detailed facial features, symmetrical composition, fantasy-themed clothing, cinematic lighting, vibrant colors, surreal background. The person’s face should be clearly visible and expressive. Inspired by: ${prompt}`,
+          refine: "no_refiner",
           width: 1024,
           height: 1024,
           scheduler: "K_EULER",
@@ -30,7 +30,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
 
     const predictionId = result.id;
 
-    // Polling until prediction is complete
+    // Polling loop until image is ready
     let imageUrl = null;
     while (!imageUrl) {
       const poll = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -48,7 +48,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
         return null;
       }
 
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000)); // 1s wait
     }
 
     return imageUrl;
