@@ -16,7 +16,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
           scheduler: "K_EULER",
           num_outputs: 1,
           num_inference_steps: 40,         // Increased from 30 → better detail
-          guidance_scale: 8.5,             // Increased from 7.5 → stronger adherence to prompt
+          guidance_scale: 7.5,             // Increased from 7.5 → stronger adherence to prompt
         },
       }),
     });
