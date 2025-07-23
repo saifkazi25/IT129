@@ -9,7 +9,7 @@ export async function generateFantasyImage(prompt: string): Promise<string | nul
       body: JSON.stringify({
         version: "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc", // SDXL model version
         input: {
-          prompt: `A high-resolution fantasy portrait of a confident person standing in the center of the frame, facing directly forward. Detailed facial features, symmetrical composition, fantasy-themed clothing, cinematic lighting, vibrant colors, surreal background. The person’s face should be clearly visible and expressive. Inspired by: ${prompt}`,
+          prompt: `A full-body fantasy scene featuring a confident person standing in the center, facing directly forward. The face should be clearly visible and expressive, but the entire body must be visible from head to toe. The person wears a fantasy-themed outfit, with cinematic lighting, vibrant colors, and a richly detailed surreal background. Inspired by: ${prompt}`,
           refine: "no_refiner",
           width: 1024,
           height: 1024,
