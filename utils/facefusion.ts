@@ -4,25 +4,29 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-export async function mergeFaces(sourceImageUrl: string, targetImageUrl: string): Promise<string> {
-  console.log('🔗 Calling FaceFusion with:');
-  console.log('👤 Source (selfie):', sourceImageUrl);
-  console.log('🌌 Target (fantasy):', targetImageUrl);
+export async function mergeFaces(targetImageUrl: string, sourceImageUrl: string): Promise<string | null> {
+  console.log('📸 Merging selfie:', sourceImageUrl);
+  console.log('🖼️ With fantasy image:', targetImageUrl);
 
-  const output = await replicate.run(
-    'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
-    {
-      input: {
-        source_image: sourceImageUrl,
-        target_image: targetImageUrl,
-      },
-    }
-  );
+  const input = {
+    target_image: targetImageUrl,
+    source_image: sourceImageUrl,
+    mode: 'overwrite',
+    detect_alignment: true,
+    paste_back: true,
+    watermark: false,
+  };
 
-  if (!output || typeof output !== 'string') {
-    throw new Error('Invalid FaceFusion output');
+  try {
+    const output = (await replicate.run(
+      'lucataco/modelscope-facefusion:52edbb2b42beb4e19242f0c9ad5717211a96c63ff1f0b0320caa518b2745f4f7',
+      { input }
+    )) as string;
+
+    console.log('✅ FaceFusion result:', output);
+    return output;
+  } catch (error) {
+    console.error('❌ FaceFusion failed:', error);
+    return null;
   }
-
-  console.log('🧬 FaceFusion output URL:', output);
-  return output;
 }
