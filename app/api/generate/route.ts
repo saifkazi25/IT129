@@ -1,43 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { generateFantasyImage } from '../../../utils/replicate';
-import { uploadImageToCloudinary } from '../../../utils/cloudinary';
 import { mergeFaces } from '../../../utils/facefusion';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    // ✅ FIX: Parse as JSON directly (was: req.text())
-    const { quizAnswers, selfieUrl } = await req.json();
+    const body = await req.json(); // ✅ Use JSON body parsing
 
-    console.log('📥 Incoming quizAnswers:', quizAnswers);
-    console.log('📸 Incoming selfieUrl:', selfieUrl);
+    const { quizAnswers, selfieUrl } = body;
 
-    if (!quizAnswers || quizAnswers.length !== 7 || !selfieUrl) {
-      console.error('❌ Missing input data', { quizAnswers, selfieUrl });
+    console.log('✅ Received payload in /api/generate:', { quizAnswers, selfieUrl });
+
+    // Input validation
+    if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length !== 7) {
+      console.error('❌ Invalid or missing quizAnswers:', quizAnswers);
       return NextResponse.json(
-        { message: 'Missing quiz answers or selfie URL' },
+        { message: 'Missing or invalid quiz answers' },
         { status: 400 }
       );
     }
 
-    const prompt = `A fantasy portrait of a person in a surreal world inspired by: ${quizAnswers.join(
-      ', '
-    )}, cinematic lighting, ultra-detailed, 4k, front-facing face, vivid colors`;
-    console.log('📝 SDXL Prompt:', prompt);
+    if (!selfieUrl || typeof selfieUrl !== 'string') {
+      console.error('❌ Invalid or missing selfieUrl:', selfieUrl);
+      return NextResponse.json(
+        { message: 'Missing or invalid selfie URL' },
+        { status: 400 }
+      );
+    }
 
-    const fantasyImage = await generateFantasyImage(prompt);
-    console.log('✨ SDXL fantasy image generated:', fantasyImage);
+    // Step 1: Generate fantasy image using SDXL
+    console.log('✨ Calling SDXL...');
+    const fantasyImageUrl = await generateFantasyImage(quizAnswers);
+    console.log('🖼️ SDXL fantasy image URL:', fantasyImageUrl);
 
-    const fantasyImageUrl = await uploadImageToCloudinary(fantasyImage);
-    console.log('☁️ Uploaded fantasy image to Cloudinary:', fantasyImageUrl);
+    if (!fantasyImageUrl) {
+      throw new Error('Fantasy image generation failed');
+    }
 
-    const mergedImageUrl = await mergeFaces(selfieUrl, fantasyImageUrl);
-    console.log('🧬 Final merged image URL:', mergedImageUrl);
+    // Step 2: Merge fantasy image + selfie using FaceFusion
+    console.log('🤖 Calling FaceFusion...');
+    const mergedImageUrl = await mergeFaces(fantasyImageUrl, selfieUrl);
+    console.log('🧠 Final merged image URL:', mergedImageUrl);
 
+    if (!mergedImageUrl) {
+      throw new Error('Face merging failed');
+    }
+
+    // Return final merged image
     return NextResponse.json({ mergedImageUrl });
-  } catch (err: any) {
-    console.error('🔥 /api/generate error:', err);
+
+  } catch (error: any) {
+    console.error('❌ Error in /api/generate:', error);
     return NextResponse.json(
-      { message: err.message || 'Internal server error' },
+      { message: error?.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
